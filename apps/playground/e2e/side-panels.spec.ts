@@ -1,4 +1,4 @@
-import { center, drag, expect, renders, test } from './fixtures'
+import { center, drag, expect, renders, settledRenders, test } from './fixtures'
 
 test.describe('SidePanels', () => {
   test('Server Component page renders with dot-notation parts', async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('SidePanels', () => {
     await page.goto('/side-panels')
     const left = page.getByTestId('left')
     await expect(left).toHaveAttribute('data-state', 'expanded')
-    const before = await renders(page, 'main-content')
+    const before = await settledRenders(page, 'main-content')
     const handle = await center(page, '[data-testid=left-handle]')
     await page.mouse.move(handle.x, handle.y)
     await page.mouse.down()

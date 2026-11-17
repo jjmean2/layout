@@ -1,4 +1,4 @@
-import { center, drag, expect, instances, renders, test } from './fixtures'
+import { center, drag, expect, instances, renders, settledRenders, test } from './fixtures'
 import type { Page } from '@playwright/test'
 
 const paneBox = async (page: Page, id: string) => (await page.getByTestId(`pane-${id}`).boundingBox())!
@@ -49,7 +49,7 @@ test.describe('Tiling', () => {
   test('separator drag resizes without re-rendering pane content; keyboard works', async ({ page }) => {
     await page.goto('/tiling')
     const before = await paneBox(page, 'editor')
-    const r0 = await renders(page, 'pane-editor')
+    const r0 = await settledRenders(page, 'pane-editor')
     const sep = await center(page, '[data-testid="sep-:0"]')
     await page.mouse.move(sep.x, sep.y)
     await page.mouse.down()
@@ -71,7 +71,8 @@ test.describe('Tiling', () => {
 
   test('float moves the pane to the floating layer, preserving state (moveBefore path)', async ({ page }) => {
     await page.goto('/tiling')
-    expect(await page.evaluate(() => typeof Element.prototype.moveBefore)).toBe('function')
+    const supported = await page.evaluate(() => typeof Element.prototype.moveBefore === 'function')
+    test.skip(!supported, 'moveBefore 미지원 브라우저 (fallback 경로는 다음 테스트가 확인한다)')
     await page.getByTestId('input-frame').count() // frame pane has iframe, no input
     await markIframe(page, 'frame')
     await page.getByTestId('input-editor').fill('typed')
@@ -172,7 +173,7 @@ test.describe('Tiling', () => {
     const json = () => page.getByTestId('layout-json').textContent()
     const order = async () => JSON.parse((await json())!).floating.map((f: { id: string }) => f.id)
     expect(await order()).toEqual(['editor', 'list'])
-    const r0 = await renders(page, 'pane-list')
+    const r0 = await settledRenders(page, 'pane-list')
     await page.getByTestId('pane-list').click({ position: { x: 40, y: 60 } })
     expect(await order()).toEqual(['editor', 'list'])
     expect(await renders(page, 'pane-list')).toBe(r0)

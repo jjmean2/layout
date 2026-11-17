@@ -1,6 +1,6 @@
 # 레이아웃 컴포넌트 설계 및 구현 계획
 
-- 상태: 초안, 구현 전 (2026-11-18)
+- 상태: v1 구현 완료 (2026-11-18). 구현 결과와 설계에서 달라진 점은 13장
 - 대상: `packages/layout` (가칭 `@layout/react`), `apps/playground`
 
 ## 1. 목표
@@ -113,7 +113,7 @@ pointer 놓음 → draft를 확정 → onLayoutChange(next) 한 번
 
 | 규칙 | 내용 |
 |---|---|
-| `"use client"` | 각 entry 파일 맨 위에 둔다. 빌드 산출물에도 남아 있어야 한다 (Phase 0 완료 기준) |
+| `"use client"` | 각 레이아웃의 `parts` 모듈 맨 위에 둔다. entry(`index`)는 서버 모듈로 두고 `export * as X from './parts'`로 다시 내보낸다. entry가 client 모듈이면 Server Component에서 `<X.Root>` 점 표기가 동작하지 않는다(13장). 빌드 산출물에도 남아 있어야 한다 |
 | 브라우저 API | render 중에 `window`, `document`, `ResizeObserver`를 쓰지 않는다. effect 안에서만 쓴다 |
 | 첫 렌더 | state만으로 렌더한다. 서버와 클라이언트 첫 렌더가 같다 |
 | store | `useSyncExternalStore`에 `getServerSnapshot`을 준다 |
@@ -601,3 +601,61 @@ function Dashboard() {
 - [Window Splitter Pattern — WAI-ARIA APG](https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter)
 - [Understanding SC 1.4.13: Content on Hover or Focus — W3C](https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus)
 - [What's New in WCAG 2.2 — W3C](https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/)
+
+## 13. 구현 결과 (2026-11-18)
+
+브랜치 `feat/layout-v1`. 커밋은 SidePanels(기반 포함), Tiling, Grid(중첩 검증 포함), 마무리 순서다.
+
+### 실행한 검증
+
+| 항목 | 결과 |
+|---|---|
+| 단위 테스트 (Vitest) | 38개 통과. Tiling 무작위 연산 500회, Grid 무작위 이동 400회의 불변 조건, 기하 계산을 px 재귀 배치와 3가지 크기에서 대조 |
+| e2e, `next build` + `next start` | Chromium, WebKit 각각 실행. 3회 반복에서 171개 통과, 3개 skip(WebKit의 `moveBefore` 경로 테스트) |
+| e2e, `next dev` (StrictMode) | Chromium, WebKit 2회 반복에서 114개 통과 |
+| 모든 e2e에 공통 | 콘솔 오류, hydration 경고, 페이지 예외 0건을 자동 검사 |
+| `"use client"` 유지 | 빌드 후 스크립트(`scripts/check-directives.mjs`)가 parts는 client, entry는 서버 모듈인지 검사 |
+| Server Component import | `/rsc` 페이지가 wrapper 없이 `<SidePanels.Root>`를 렌더 (prod, dev) |
+
+Phase 0 spike 판정:
+
+| 항목 | 결과 |
+|---|---|
+| 1. StrictMode에서 pane이 한 번만 mount | 통과. split, hide, show, float, dock 전후로 컴포넌트 인스턴스가 같다 |
+| 2. Root ↔ 레이어 이동 후 React state 유지 | 통과 |
+| 3. `transform` 조상 안에서 viewport 좌표 표시 | 통과 (`/showcase`) |
+| 4. `moveBefore` 경로에서 iframe 유지, fallback 경로에서 포커스와 스크롤 복원 | 통과. fallback은 Chromium에서 `moveBefore`를 지운 경우와 WebKit(미지원) 양쪽에서 확인. 두 경우 모두 iframe은 재로드된다 |
+| 5. iframe 위 드래그 | pointer capture로 끊기지 않음. iframe shield는 추가하지 않았다 |
+
+→ plan B 없이 5.3의 방식으로 진행했다.
+
+단계별 완료 기준 중 실행하지 않은 것:
+
+- Firefox에서의 e2e. 설치하지 않았다.
+- 접근성은 ARIA 속성과 키보드 조작만 e2e로 확인했다. 스크린 리더 확인은 하지 않았다.
+- Grid 자동 스크롤(드래그 중 가장자리)은 구현하지 않았다 (후순위 항목).
+- Grid 반응형 브레이크포인트 등 1장의 v1 제외 항목.
+
+### 설계에서 달라진 점
+
+| 설계 | 구현 | 이유 |
+|---|---|---|
+| entry 파일에 `"use client"` | parts 모듈에 `"use client"`, entry는 서버 모듈 | client 모듈의 namespace export는 Server Component에서 점 표기로 쓸 수 없었다(prerender 오류). 덕분에 순수 함수(`toggleCollapsed` 등)는 서버에서도 쓸 수 있다 |
+| `render` prop은 요소 | lazy 노드도 받는다 | dev 모드에서 Server Component가 넘긴 요소가 lazy 노드로 와서 hydration mismatch가 났다 |
+| bounds 요소는 layout effect에서 측정 | ref가 비어 있으면 commit 직후(microtask)에 다시 측정 | 자식(Tiling)의 layout effect가 부모(SidePanels Root)의 ref가 붙기 전에 실행되어 viewport로 잘못 측정했다 |
+| Grid의 `data-resizing`은 컨테이너 resize 중에만 | 첫 측정에도 붙인다 | 셀 너비가 0에서 실제 값으로 바뀌면서 사용자 transition으로 아이템이 왼쪽 위에서 날아왔다 |
+| Grid `ResizeHandle` 방향 지정 | 오른쪽 아래 하나 | 홈 화면 위젯 방식에 충분. 필요하면 Tiling의 `edge`처럼 확장 |
+| `useTiling()`, `usePane()` | `usePane()`은 자기 pane의 placement와 포커스만 구독 | `useTiling()`은 layout 전체를 구독하므로, pane 헤더가 쓰면 separator 드래그 중 매 프레임 리렌더된다 |
+| `Tiling.MoveHandle`은 floating일 때만 | tiled 상태에서는 handle 동작 없이 children만 렌더 | 제목 표시줄을 그대로 감쌀 수 있게 |
+| 접힌 패널은 너비 0 | 너비, padding, 테두리 모두 0 | 사용자 테두리 1px이 남아 overlay 전환 시 Main이 1px 움직였다 |
+
+구현 중 고친 공용 버그:
+
+- `useStoreSelector`가 store 값이 같으면 selector closure가 바뀌어도 이전 결과를 돌려줬다. Grid placeholder가 드래그 후 남는 문제로 발견했다.
+- 드래그 중 pointerup이 rAF보다 먼저 오면 마지막 이동이 반영되지 않았다. WebKit e2e에서 발견했다. 이제 놓는 순간 마지막 이동을 먼저 반영한다.
+
+### 사용 시 알아둘 것
+
+- 패널 내용은 접힐 때 너비가 0이 된다. 내용이 찌그러지지 않게 하려면 안쪽 요소에 `width: var(--side-panel-size)`를 준다.
+- Grid Root의 padding은 0으로 고정된다. 여백이 필요하면 바깥 요소에 준다.
+- 한 페이지에 viewport 범위 Tiling이 여러 개면 창의 z-order는 각 Tiling 안에서만 정해진다(레이어 공용 카운터는 구현하지 않음).

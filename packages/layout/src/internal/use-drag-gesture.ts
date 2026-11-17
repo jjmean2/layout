@@ -90,7 +90,10 @@ export function useDragGesture(options: DragGestureOptions) {
       if (event.pointerId !== pointerId) return
       const wasStarted = started
       finish()
-      if (wasStarted) optionsRef.current.onEnd(delta(event))
+      if (!wasStarted) return
+      // 아직 반영되지 않은 마지막 이동을 먼저 반영한다 (rAF 전에 놓은 경우).
+      optionsRef.current.onMove(delta(event))
+      optionsRef.current.onEnd(delta(event))
     }
 
     const onCancel = (event?: Event) => {

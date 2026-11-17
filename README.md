@@ -1,1 +1,58 @@
 # layout
+
+업무 화면용 headless React 레이아웃 컴포넌트. 영역의 크기, 위치, 인터랙션만 맡고 화면에 보이는 것은 사용하는 쪽이 그린다.
+
+| 패키지 경로 | 내용 |
+|---|---|
+| `@layout/react/side-panels` | 좌/우 사이드 패널 + main. resize, 접기, 접힌 상태의 hover overlay |
+| `@layout/react/tiling` | nvim/tmux식 분할, 숨기기, floating 창 (`bounds`: 영역 안 / 화면 전체 / 지정 요소) |
+| `@layout/react/grid` | 홈 화면 위젯식 셀 그리드. 이동, 크기 조정, 밀어내기 |
+
+설계와 구현 결과: [docs/design.md](docs/design.md)
+
+## 개발
+
+```sh
+pnpm install
+pnpm test          # 모델 단위 테스트
+pnpm typecheck
+pnpm build         # 라이브러리 빌드 + playground next build
+pnpm dev           # playground (http://localhost:3100)
+
+cd apps/playground
+pnpm exec playwright install chromium webkit
+pnpm e2e                         # next start 대상 (Chromium, WebKit)
+E2E_MODE=dev pnpm e2e            # next dev 대상 (StrictMode)
+```
+
+## 사용 예
+
+```tsx
+'use client'
+import { SidePanels } from '@layout/react/side-panels'
+import { Tiling } from '@layout/react/tiling'
+
+<SidePanels.Root ref={workspaceRef} defaultLayout={{ left: { size: 260, collapsed: false } }}>
+  <SidePanels.Panel side="left" render={<aside />}>
+    <Nav />
+    <SidePanels.ResizeHandle className="sash" />
+  </SidePanels.Panel>
+  <SidePanels.HoverTrigger side="left" className="edge-zone" />
+  <SidePanels.Main>
+    <Tiling.Root defaultLayout={layout} gap={4} floating={{ bounds: workspaceRef }}>
+      <Tiling.Panes>
+        {(pane) => (
+          <Tiling.Pane className="pane">
+            <Tiling.MoveHandle className="title">{pane.id}</Tiling.MoveHandle>
+            <PaneBody id={pane.id} />
+            <Tiling.ResizeHandle edge="bottom-right" />
+          </Tiling.Pane>
+        )}
+      </Tiling.Panes>
+      <Tiling.Separators>{(s) => <Tiling.Separator separator={s} className="bar" />}</Tiling.Separators>
+    </Tiling.Root>
+  </SidePanels.Main>
+</SidePanels.Root>
+```
+
+전체 예시는 `apps/playground/app`에 있다.

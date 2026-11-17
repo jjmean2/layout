@@ -1,4 +1,4 @@
-import { center, drag, expect, renders, test } from './fixtures'
+import { center, drag, expect, renders, settledRenders, test } from './fixtures'
 import type { Page } from '@playwright/test'
 
 const items = async (page: Page) =>
@@ -26,7 +26,7 @@ test.describe('Grid', () => {
 
   test('drag moves an item, pushes others, shows placeholder, commits once', async ({ page }) => {
     await page.goto('/grid')
-    const r0 = await renders(page, 'widget-notes')
+    const r0 = await settledRenders(page, 'widget-notes')
     const handle = await center(page, '[data-testid=move-todo]')
     const clock = (await page.getByTestId('item-clock').boundingBox())!
     await page.mouse.move(handle.x, handle.y)
@@ -63,7 +63,7 @@ test.describe('Grid', () => {
 
   test('container resize updates cells via CSS only, flags data-resizing, no React renders', async ({ page }) => {
     await page.goto('/grid')
-    const r0 = await renders(page, 'widget-clock')
+    const r0 = await settledRenders(page, 'widget-clock')
     const w0 = (await page.getByTestId('item-clock').boundingBox())!.width
     await page.setViewportSize({ width: 900, height: 800 })
     await expect(page.getByTestId('grid')).toHaveAttribute('data-resizing', '')

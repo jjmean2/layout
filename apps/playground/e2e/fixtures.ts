@@ -23,6 +23,19 @@ export async function renders(page: Page, id: string): Promise<number> {
   return page.evaluate((key) => window.__renders?.[key] ?? 0, id)
 }
 
+/** 렌더 카운터가 mount되고 hydration 후속 렌더가 끝날 때까지 기다린 뒤 현재 값을 돌려준다. */
+export async function settledRenders(page: Page, id: string): Promise<number> {
+  await expect.poll(() => renders(page, id)).toBeGreaterThan(0)
+  let prev = -1
+  let current = await renders(page, id)
+  while (current !== prev) {
+    prev = current
+    await page.waitForTimeout(100)
+    current = await renders(page, id)
+  }
+  return current
+}
+
 export async function instances(page: Page, id: string): Promise<string[]> {
   return page.evaluate((key) => window.__instances?.[key] ?? [], id)
 }

@@ -10,9 +10,13 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${port}`,
-    ...devices['Desktop Chrome'],
     viewport: { width: 1280, height: 800 },
   },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    // moveBefore를 지원하지 않는 엔진에서 fallback 경로를 확인한다. `pnpm e2e --project=webkit`
+    { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },
+  ],
   webServer: {
     command: dev ? `next dev -p ${port}` : `next start -p ${port}`,
     url: `http://localhost:${port}`,
