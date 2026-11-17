@@ -6,6 +6,7 @@ const demos = [
   ['/tiling', '대표 구조: GNB + SidePanels > Main > Tiling'],
   ['/grid', 'Grid 위젯 대시보드'],
   ['/showcase', '임의 영역(transform, overflow) 안에 넣은 레이아웃'],
+  ['/nested', '중첩: SidePanels > Tiling > Grid'],
 ] as const
 
 export default function Home() {

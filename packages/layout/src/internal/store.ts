@@ -38,7 +38,7 @@ export function useStoreSelector<T, S>(
   selector: (state: T) => S,
   isEqual: (a: S, b: S) => boolean = Object.is,
 ): S {
-  const cache = useRef<{ state: T; selected: S } | null>(null)
+  const cache = useRef<{ state: T; selector: (state: T) => S; selected: S } | null>(null)
   const selectorRef = useRef(selector)
   selectorRef.current = selector
   const isEqualRef = useRef(isEqual)
@@ -46,14 +46,16 @@ export function useStoreSelector<T, S>(
 
   const getSnapshot = useCallback(() => {
     const state = store.get()
+    const selector = selectorRef.current
     const prev = cache.current
-    if (prev && Object.is(prev.state, state)) return prev.selected
-    const selected = selectorRef.current(state)
+    // selector는 렌더마다 새 closure일 수 있고, closure가 잡은 값이 바뀌었을 수 있으므로 함께 비교한다.
+    if (prev && Object.is(prev.state, state) && prev.selector === selector) return prev.selected
+    const selected = selector(state)
     if (prev && isEqualRef.current(prev.selected, selected)) {
-      cache.current = { state, selected: prev.selected }
+      cache.current = { state, selector, selected: prev.selected }
       return prev.selected
     }
-    cache.current = { state, selected }
+    cache.current = { state, selector, selected }
     return selected
   }, [store])
 
