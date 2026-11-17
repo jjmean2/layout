@@ -262,6 +262,21 @@ export function Panel(props: PanelProps) {
   }
 
   const revealer = ctx.revealers[side]
+
+  // hover로 연 overlay도 포커스 위치와 관계없이 Esc로 닫는다 (WCAG 1.4.13 dismissible).
+  useEffect(() => {
+    if (vstate !== 'overlay') return
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      const panel = ctx.panelRefs[side].current
+      const hadFocus = !!panel && panel.contains(document.activeElement)
+      revealer.closeNow()
+      if (hadFocus) ctx.triggerRefs[side].current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [vstate, ctx, side, revealer])
+
   const onPointerEnter = vstate === 'overlay' ? () => revealer.enter() : undefined
   const onPointerLeave = vstate === 'overlay' ? () => revealer.leave() : undefined
   const onKeyDown =

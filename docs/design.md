@@ -611,8 +611,9 @@ function Dashboard() {
 | 항목 | 결과 |
 |---|---|
 | 단위 테스트 (Vitest) | 38개 통과. Tiling 무작위 연산 500회, Grid 무작위 이동 400회의 불변 조건, 기하 계산을 px 재귀 배치와 3가지 크기에서 대조 |
-| e2e, `next build` + `next start` | Chromium, WebKit 각각 실행. 3회 반복에서 171개 통과, 3개 skip(WebKit의 `moveBefore` 경로 테스트) |
-| e2e, `next dev` (StrictMode) | Chromium, WebKit 2회 반복에서 114개 통과 |
+| e2e, `next build` + `next start` | Chromium, WebKit 각각 실행. 2회 반복에서 130개 통과, 2개 skip(WebKit의 `moveBefore` 경로 테스트) |
+| e2e, `next dev` (StrictMode) | Chromium, WebKit에서 65개 통과, 1개 skip |
+| 클린 checkout | 새로 clone한 뒤 README 순서(`install` → `test` → `typecheck` → `build`)로 실행 |
 | 모든 e2e에 공통 | 콘솔 오류, hydration 경고, 페이지 예외 0건을 자동 검사 |
 | `"use client"` 유지 | 빌드 후 스크립트(`scripts/check-directives.mjs`)가 parts는 client, entry는 서버 모듈인지 검사 |
 | Server Component import | `/rsc` 페이지가 wrapper 없이 `<SidePanels.Root>`를 렌더 (prod, dev) |
@@ -625,7 +626,7 @@ Phase 0 spike 판정:
 | 2. Root ↔ 레이어 이동 후 React state 유지 | 통과 |
 | 3. `transform` 조상 안에서 viewport 좌표 표시 | 통과 (`/showcase`) |
 | 4. `moveBefore` 경로에서 iframe 유지, fallback 경로에서 포커스와 스크롤 복원 | 통과. fallback은 Chromium에서 `moveBefore`를 지운 경우와 WebKit(미지원) 양쪽에서 확인. 두 경우 모두 iframe은 재로드된다 |
-| 5. iframe 위 드래그 | pointer capture로 끊기지 않음. iframe shield는 추가하지 않았다 |
+| 5. iframe 위 드래그 | 통과. separator를 iframe pane 안으로 끌어도 끝까지 따라간다(Chromium, WebKit, 오차 1px). iframe shield는 추가하지 않았다 |
 
 → plan B 없이 5.3의 방식으로 진행했다.
 
@@ -633,6 +634,7 @@ Phase 0 spike 판정:
 
 - Firefox에서의 e2e. 설치하지 않았다.
 - 접근성은 ARIA 속성과 키보드 조작만 e2e로 확인했다. 스크린 리더 확인은 하지 않았다.
+- `minVisible: 'full'`은 단위 테스트로만 확인했다. 브라우저 e2e는 기본값(100px)만 다룬다.
 - Grid 자동 스크롤(드래그 중 가장자리)은 구현하지 않았다 (후순위 항목).
 - Grid 반응형 브레이크포인트 등 1장의 v1 제외 항목.
 
@@ -657,5 +659,7 @@ Phase 0 spike 판정:
 ### 사용 시 알아둘 것
 
 - 패널 내용은 접힐 때 너비가 0이 된다. 내용이 찌그러지지 않게 하려면 안쪽 요소에 `width: var(--side-panel-size)`를 준다.
+- `render` prop의 lazy 노드 처리는 React 내부 필드(`_init`, `_payload`)를 읽는다. React를 올릴 때 `/rsc` dev e2e로 확인해야 한다.
+- hover로 연 overlay는 포커스 위치와 관계없이 Esc로 닫힌다(문서 전체 keydown 감지).
 - Grid Root의 padding은 0으로 고정된다. 여백이 필요하면 바깥 요소에 준다.
 - 한 페이지에 viewport 범위 Tiling이 여러 개면 창의 z-order는 각 Tiling 안에서만 정해진다(레이어 공용 카운터는 구현하지 않음).

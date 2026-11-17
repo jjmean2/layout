@@ -186,6 +186,42 @@ test.describe('Tiling', () => {
   })
 })
 
+test.describe('Tiling geometry and bounds', () => {
+  test('separator drag across an iframe keeps tracking the pointer', async ({ page }) => {
+    await page.goto('/tiling')
+    const list0 = await paneBox(page, 'list')
+    const frame = await paneBox(page, 'frame')
+    const sep = await center(page, '[data-testid="sep-1:0"]')
+    // 아래쪽 iframe pane 안으로 끈다
+    const target = frame.y + frame.height * 0.6
+    await drag(page, sep, { x: sep.x, y: target }, 12)
+    const list1 = await paneBox(page, 'list')
+    expect(Math.abs(list1.height - list0.height - (target - sep.y))).toBeLessThanOrEqual(1)
+  })
+
+  test('container resize re-lays out panes with CSS only (no pane re-render)', async ({ page }) => {
+    await page.goto('/tiling')
+    const r0 = await settledRenders(page, 'pane-editor')
+    const w0 = (await paneBox(page, 'editor')).width
+    await page.setViewportSize({ width: 1000, height: 700 })
+    await expect.poll(async () => (await paneBox(page, 'editor')).width).toBeLessThan(w0)
+    await page.waitForTimeout(150)
+    expect(await renders(page, 'pane-editor')).toBe(r0)
+  })
+
+  test('a floating window returns to its stored position after the bounds shrink and regrow', async ({ page }) => {
+    await page.goto('/tiling')
+    await page.getByTestId('float-editor').dispatchEvent('click')
+    const handle = await center(page, '[data-testid=move-editor]')
+    await drag(page, handle, { x: 1000, y: 500 }, 10)
+    const before = await paneBox(page, 'editor')
+    await page.setViewportSize({ width: 700, height: 500 })
+    await expect.poll(async () => (await paneBox(page, 'editor')).x).toBeLessThan(before.x)
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await expect.poll(async () => paneBox(page, 'editor')).toEqual(before)
+  })
+})
+
 test.describe('Tiling showcase (transform + overflow ancestors)', () => {
   test("bounds 'container' keeps the window inside the frame", async ({ page }) => {
     await page.goto('/showcase')

@@ -84,6 +84,22 @@ test.describe('SidePanels', () => {
     // 벗어나면 닫힌다
     await page.mouse.move(900, 400)
     await expect(left).toHaveAttribute('data-state', 'collapsed')
+    // hover로 다시 열고, 포커스가 다른 곳에 있어도 Esc로 닫힌다
+    await page.mouse.move(trigger.x, trigger.y)
+    await expect(left).toHaveAttribute('data-state', 'overlay')
+    await page.mouse.move(trigger.x + 100, trigger.y, { steps: 3 })
+    await page.keyboard.press('Escape')
+    await expect(left).toHaveAttribute('data-state', 'collapsed')
+  })
+
+  test('uncontrolled Root (Server Component page) keeps the dragged size', async ({ page }) => {
+    await page.goto('/rsc')
+    const aside = page.locator('aside')
+    const handle = await center(page, '.sash')
+    await drag(page, handle, { x: handle.x + 60, y: handle.y })
+    await expect.poll(async () => Math.round((await aside.boundingBox())!.width)).toBe(280)
+    await page.waitForTimeout(200)
+    expect(Math.round((await aside.boundingBox())!.width)).toBe(280)
   })
 
   test('hover overlay by keyboard: Enter opens and focuses panel, Esc closes and returns focus', async ({ page }) => {

@@ -15,14 +15,13 @@
 ```sh
 pnpm install
 pnpm test          # 모델 단위 테스트
-pnpm typecheck
+pnpm typecheck     # 라이브러리 검사 → 빌드(dist) → playground 검사. playground는 dist의 타입을 쓴다
 pnpm build         # 라이브러리 빌드 + playground next build
 pnpm dev           # playground (http://localhost:3100)
 
-cd apps/playground
-pnpm exec playwright install chromium webkit
-pnpm e2e                         # next start 대상 (Chromium, WebKit)
-E2E_MODE=dev pnpm e2e            # next dev 대상 (StrictMode)
+pnpm --filter playground exec playwright install chromium webkit
+pnpm e2e                                          # build 후 next start 대상 (Chromium, WebKit)
+pnpm build && E2E_MODE=dev pnpm --filter playground e2e   # next dev 대상 (StrictMode)
 ```
 
 ## 사용 예

@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @layout/react build && pnpm --filter playground build",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @layout/react typecheck && pnpm --filter @layout/react build && pnpm --filter playground typecheck",
     "test": "pnpm --filter @layout/react test",
-    "e2e": "pnpm --filter playground e2e",
+    "e2e": "pnpm build && pnpm --filter playground e2e",
     "dev": "pnpm --filter @layout/react build && pnpm --filter playground dev"
   },
   "devEngines": {
