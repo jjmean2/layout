@@ -1,14 +1,14 @@
 {
   "name": "layout",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm --filter @layout/react build && pnpm --filter playground build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @layout/react test",
+    "e2e": "pnpm --filter playground e2e",
+    "dev": "pnpm --filter @layout/react build && pnpm --filter playground dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -16,6 +16,5 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.21.0",
-  "type": "module"
+  "packageManager": "pnpm@12.21.0"
 }
