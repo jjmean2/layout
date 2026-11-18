@@ -1,14 +1,16 @@
 {
   "name": "layout",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook build",
+    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook typecheck",
+    "test": "pnpm --filter @justwonder/layout test",
+    "e2e": "pnpm build && pnpm --filter playground --filter showcase --filter storybook e2e",
+    "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev",
+    "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev",
+    "storybook": "pnpm --filter storybook dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -16,6 +18,5 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.21.0",
-  "type": "module"
+  "packageManager": "pnpm@12.21.0"
 }
