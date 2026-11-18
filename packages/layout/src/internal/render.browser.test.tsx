@@ -65,3 +65,21 @@ test('a lazy wrapper (as sent by Server Components in dev) is unwrapped via publ
   expect(el.tagName).toBe('ASIDE')
   expect(el.getAttribute('data-state')).toBe('expanded')
 })
+
+test('Grid.Root accepts a style function and keeps its layout keys', async () => {
+  const { Grid } = await import('../grid/index.js')
+  const screen = await render(
+    <div style={{ width: 600, height: 300 }}>
+      <Grid.Root
+        data-testid="grid"
+        cols={4}
+        defaultLayout={[]}
+        style={(state) => ({ background: state.dragging ? 'red' : 'rgb(4, 5, 6)', overflow: 'hidden' })}
+      />
+    </div>,
+  )
+  const el = screen.getByTestId('grid').element() as HTMLElement
+  expect(el.style.background).toBe('rgb(4, 5, 6)')
+  // overflow는 Grid의 배치(스크롤 영역) 키라 라이브러리 값이 이긴다
+  expect(el.style.overflow).toBe('auto')
+})

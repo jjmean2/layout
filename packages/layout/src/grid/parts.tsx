@@ -102,7 +102,6 @@ export function Root(props: RootProps) {
     compact = false,
     render,
     children,
-    style: userStyle,
     ...rest
   } = props
   const controller = useLayoutController<GridLayout>({ layout, defaultLayout, onLayoutChange }, [])
@@ -157,7 +156,6 @@ export function Root(props: RootProps) {
   const dragging = useStoreSelector(ctx.drag, (d) => d !== null)
 
   const style: CSSProperties & Record<`--${string}`, string> = {
-    ...(userStyle as CSSProperties),
     '--grid-cols': String(cols),
     '--grid-gap': `${gap}px`,
     '--grid-row-h': rowHeight === 'square' ? 'var(--grid-cell-w)' : `${rowHeight}px`,
