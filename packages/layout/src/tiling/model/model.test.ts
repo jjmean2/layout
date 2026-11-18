@@ -41,7 +41,10 @@ describe('tiling ops', () => {
       type: 'split',
       direction: 'row',
       sizes: [0.5, 0.5],
-      children: [pane('a'), { type: 'split', direction: 'column', sizes: [0.5, 0.5], children: [pane('b'), pane('c')] }],
+      children: [
+        pane('a'),
+        { type: 'split', direction: 'column', sizes: [0.5, 0.5], children: [pane('b'), pane('c')] },
+      ],
     })
   })
 
@@ -140,7 +143,15 @@ describe('tiling ops', () => {
 })
 
 /** 비교용: px로 직접 재귀 배치 */
-function referenceLayout(node: TileNode, x: number, y: number, w: number, h: number, gap: number, out: Map<string, [number, number, number, number]>) {
+function referenceLayout(
+  node: TileNode,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  gap: number,
+  out: Map<string, [number, number, number, number]>,
+) {
   if (node.type === 'pane') {
     out.set(node.id, [x, y, w, h])
     return
@@ -159,7 +170,11 @@ function referenceLayout(node: TileNode, x: number, y: number, w: number, h: num
 
 describe('tiled geometry', () => {
   const tree = createLayout(
-    splitNode('row', [pane('a'), splitNode('column', [pane('b'), splitNode('row', [pane('c'), pane('d')], [0.3, 0.7])], [0.6, 0.4])], [0.25, 0.75]),
+    splitNode(
+      'row',
+      [pane('a'), splitNode('column', [pane('b'), splitNode('row', [pane('c'), pane('d')], [0.3, 0.7])], [0.6, 0.4])],
+      [0.25, 0.75],
+    ),
   ).root!
 
   it.each([

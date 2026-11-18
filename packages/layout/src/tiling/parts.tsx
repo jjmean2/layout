@@ -202,7 +202,8 @@ export function Root(props: RootProps) {
       rootRef,
       panesRef,
       geometry(root, g) {
-        if (!cache || cache.root !== root || cache.gap !== g) cache = { root, gap: g, value: computeTiledGeometry(root, g) }
+        if (!cache || cache.root !== root || cache.gap !== g)
+          cache = { root, gap: g, value: computeTiledGeometry(root, g) }
         return cache.value
       },
       domId: (id) => `${idBase}pane-${id}`,
@@ -234,8 +235,7 @@ export function Root(props: RootProps) {
     let disposed = false
     let teardown = () => {}
     const setup = (): boolean => {
-      const target =
-        bounds === 'container' ? rootRef.current : bounds === 'viewport' ? null : (bounds.current ?? null)
+      const target = bounds === 'container' ? rootRef.current : bounds === 'viewport' ? null : (bounds.current ?? null)
       const resolved = bounds === 'viewport' || target !== null
       const measure = () => {
         let box: BoundsBox
@@ -532,7 +532,11 @@ export function MoveHandle(props: MoveHandleProps) {
     const move = moves[event.key]
     if (!move) return
     event.preventDefault()
-    const next = displayedRect({ ...s, x: s.x + move[0], y: s.y + move[1] }, ctx.runtime.get().bounds, ctx.options.get())
+    const next = displayedRect(
+      { ...s, x: s.x + move[0], y: s.y + move[1] },
+      ctx.runtime.get().bounds,
+      ctx.options.get(),
+    )
     ctx.state.commit((l) => moveFloating(l, id, next))
   }
 
@@ -700,8 +704,9 @@ export function Separator(props: SeparatorProps) {
   const { separator, step = 10, render, ...rest } = props
   const ctx = useTilingContext('Separator')
   const gap = useStoreSelector(ctx.options, (o) => o.gap)
-  const geometry = useStoreSelector(ctx.state.store, (l) =>
-    ctx.geometry(l.root, gap).separators.find((s) => s.key === separator.key) ?? null,
+  const geometry = useStoreSelector(
+    ctx.state.store,
+    (l) => ctx.geometry(l.root, gap).separators.find((s) => s.key === separator.key) ?? null,
   )
   const ratio = useStoreSelector(ctx.state.store, (l) => {
     const node = splitAt(l.root, separator.path)
@@ -746,7 +751,9 @@ export function Separator(props: SeparatorProps) {
       const d = drag.current
       if (!d) return
       const delta = (row ? dx : dy) / d.available
-      ctx.state.preview(moveSeparator(ctx.state.committed(), separator.path, separator.index, d.startSizes, delta, d.min))
+      ctx.state.preview(
+        moveSeparator(ctx.state.committed(), separator.path, separator.index, d.startSizes, delta, d.min),
+      )
     },
     onEnd: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
@@ -847,7 +854,8 @@ function defaultFloatRect(ctx: TilingContextValue, id: PaneId): Rect {
       : bounds === 'viewport'
         ? new DOMRect(0, 0, window.innerWidth, window.innerHeight)
         : (bounds.current?.getBoundingClientRect() ?? null)
-  if (!el || !boundsRect) return { x: 40, y: 40, width: Math.max(minSize.width, 480), height: Math.max(minSize.height, 320) }
+  if (!el || !boundsRect)
+    return { x: 40, y: 40, width: Math.max(minSize.width, 480), height: Math.max(minSize.height, 320) }
   const r = el.getBoundingClientRect()
   const width = Math.max(minSize.width, Math.min(r.width, boundsRect.width * 0.6))
   const height = Math.max(minSize.height, Math.min(r.height, boundsRect.height * 0.6))
@@ -863,7 +871,8 @@ type TilingActions = Omit<TilingApi, 'layout' | 'focused'>
 
 function createActions(ctx: TilingContextValue): TilingActions {
   return {
-    split: (target, newId, direction, options) => ctx.state.commit((l) => splitFn(l, target, newId, direction, options)),
+    split: (target, newId, direction, options) =>
+      ctx.state.commit((l) => splitFn(l, target, newId, direction, options)),
     close: (id) => ctx.state.commit((l) => closeFn(l, id)),
     hide: (id) => ctx.state.commit((l) => hideFn(l, id)),
     show: (id) => ctx.state.commit((l) => showFn(l, id)),

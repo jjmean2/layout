@@ -4,7 +4,13 @@ import { useState } from 'react'
 import { TilingDemo } from './fixtures'
 
 const basic = () =>
-  createLayout(splitNode('row', [pane('editor'), splitNode('column', [pane('preview'), pane('terminal')], [0.6, 0.4])], [0.55, 0.45]))
+  createLayout(
+    splitNode(
+      'row',
+      [pane('editor'), splitNode('column', [pane('preview'), pane('terminal')], [0.6, 0.4])],
+      [0.55, 0.45],
+    ),
+  )
 
 const meta = {
   title: 'Layouts/Tiling',

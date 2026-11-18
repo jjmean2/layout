@@ -7,7 +7,9 @@ export default function RscPage() {
       <header className="gnb">RSC</header>
       <SidePanels.Root className="workspace" defaultLayout={{ left: { size: 220, collapsed: false } }}>
         <SidePanels.Panel side="left" className="side" render={<aside />}>
-          <div className="side-inner" data-testid="rsc-left">서버에서 렌더한 왼쪽 패널</div>
+          <div className="side-inner" data-testid="rsc-left">
+            서버에서 렌더한 왼쪽 패널
+          </div>
           <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
         <SidePanels.Main className="main">

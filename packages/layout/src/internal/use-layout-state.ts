@@ -57,8 +57,7 @@ export function useLayoutState<T>(options: LayoutStateOptions<T>): LayoutState<T
 
   const commit = useCallback(
     (nextOrFn: T | ((prev: T) => T)) => {
-      const next =
-        typeof nextOrFn === 'function' ? (nextOrFn as (prev: T) => T)(committedRef.current) : nextOrFn
+      const next = typeof nextOrFn === 'function' ? (nextOrFn as (prev: T) => T)(committedRef.current) : nextOrFn
       drafting.current = false
       if (deepEqual(next, committedRef.current)) {
         store.set(committedRef.current)

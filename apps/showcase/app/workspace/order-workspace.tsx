@@ -131,7 +131,11 @@ function PaneHead({ title }: { title: string }) {
       <Tiling.MoveHandle className="pane-title" aria-label={`${title} 창 이동`}>
         {title}
       </Tiling.MoveHandle>
-      <button className="pane-act" title={floating ? '제자리로' : '창으로 띄우기'} onClick={() => (floating ? pane.dock() : pane.float())}>
+      <button
+        className="pane-act"
+        title={floating ? '제자리로' : '창으로 띄우기'}
+        onClick={() => (floating ? pane.dock() : pane.float())}
+      >
         {floating ? '⇲' : '⧉'}
       </button>
       <button className="pane-act" title="숨기기" onClick={pane.hide}>

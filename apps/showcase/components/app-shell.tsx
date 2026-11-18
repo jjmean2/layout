@@ -73,7 +73,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             {children}
           </SidePanels.Main>
 
-          <SidePanels.Panel side="right" className="side" minSize={240} maxSize={560} render={<aside aria-label="Inspector" />}>
+          <SidePanels.Panel
+            side="right"
+            className="side"
+            minSize={240}
+            maxSize={560}
+            render={<aside aria-label="Inspector" />}
+          >
             <div className="side-inner inspector">
               {inspector ?? <p style={{ color: 'var(--muted)' }}>이 화면에는 표시할 정보가 없습니다.</p>}
             </div>

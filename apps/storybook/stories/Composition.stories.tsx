@@ -11,7 +11,10 @@ function AppShell() {
     <div className="demo-col">
       <div className="demo-bar">GNB</div>
       <div className="demo-fill">
-        <SidePanels.Root ref={workspace} defaultLayout={{ left: { size: 220, collapsed: false }, right: { size: 240, collapsed: false } }}>
+        <SidePanels.Root
+          ref={workspace}
+          defaultLayout={{ left: { size: 220, collapsed: false }, right: { size: 240, collapsed: false } }}
+        >
           <SidePanels.Panel side="left" className="side">
             <div className="side-inner">탐색</div>
             <SidePanels.ResizeHandle className="sash" aria-label="탐색 패널 너비" />

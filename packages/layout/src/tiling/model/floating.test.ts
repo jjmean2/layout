@@ -16,10 +16,14 @@ describe('clampFloatingRect', () => {
   })
 
   it("'full' keeps the whole window inside and shrinks it when larger than bounds", () => {
-    const r = clampFloatingRect({ x: 700, y: 500, width: 1000, height: 200 }, { width: 800, height: 600 }, {
-      ...opts,
-      minVisible: 'full',
-    })
+    const r = clampFloatingRect(
+      { x: 700, y: 500, width: 1000, height: 200 },
+      { width: 800, height: 600 },
+      {
+        ...opts,
+        minVisible: 'full',
+      },
+    )
     expect(r).toEqual({ x: 0, y: 400, width: 800, height: 200 })
   })
 

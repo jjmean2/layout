@@ -23,7 +23,14 @@ export default function SidePanelsPage() {
         </span>
       </header>
       <SidePanels.Root className="workspace" layout={layout} onLayoutChange={setLayout}>
-        <SidePanels.Panel side="left" className="side" minSize={180} maxSize={480} render={<aside />} data-testid="left">
+        <SidePanels.Panel
+          side="left"
+          className="side"
+          minSize={180}
+          maxSize={480}
+          render={<aside />}
+          data-testid="left"
+        >
           <div className="side-inner">
             <p>왼쪽 패널</p>
             <input aria-label="left-input" />

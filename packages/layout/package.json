@@ -18,7 +18,9 @@
       "default": "./dist/grid/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/check-directives.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

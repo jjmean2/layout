@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { addItem, compactLayout, findFreeSlot, moveItem, resizeItem, snapSize, stepSize, validate, type GridLayout } from './index'
+import {
+  addItem,
+  compactLayout,
+  findFreeSlot,
+  moveItem,
+  resizeItem,
+  snapSize,
+  stepSize,
+  validate,
+  type GridLayout,
+} from './index'
 
 const layout: GridLayout = [
   { id: 'a', x: 0, y: 0, w: 2, h: 2 },
@@ -58,16 +68,65 @@ describe('grid model', () => {
   })
 
   it('snapSize picks nearest preset or clamps', () => {
-    expect(snapSize(3.4, 1.8, { sizes: [[2, 2], [4, 2], [4, 4]] }, 8)).toEqual([4, 2])
+    expect(
+      snapSize(
+        3.4,
+        1.8,
+        {
+          sizes: [
+            [2, 2],
+            [4, 2],
+            [4, 4],
+          ],
+        },
+        8,
+      ),
+    ).toEqual([4, 2])
     expect(snapSize(9, 0.2, { minW: 2, maxW: 6 }, 8)).toEqual([6, 1])
-    expect(stepSize(2, 2, { sizes: [[2, 2], [4, 2], [4, 4]] }, 8, 1, 0)).toEqual([4, 2])
-    expect(stepSize(4, 2, { sizes: [[2, 2], [4, 2], [4, 4]] }, 8, -1, 0)).toEqual([2, 2])
+    expect(
+      stepSize(
+        2,
+        2,
+        {
+          sizes: [
+            [2, 2],
+            [4, 2],
+            [4, 4],
+          ],
+        },
+        8,
+        1,
+        0,
+      ),
+    ).toEqual([4, 2])
+    expect(
+      stepSize(
+        4,
+        2,
+        {
+          sizes: [
+            [2, 2],
+            [4, 2],
+            [4, 4],
+          ],
+        },
+        8,
+        -1,
+        0,
+      ),
+    ).toEqual([2, 2])
   })
 
   it('random moves keep the layout valid', () => {
     let seed = 7
     const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed / 2 ** 31)
-    let l: GridLayout = Array.from({ length: 12 }, (_, i) => ({ id: `i${i}`, x: (i * 2) % 8, y: Math.floor(i / 4) * 2, w: 2, h: 2 }))
+    let l: GridLayout = Array.from({ length: 12 }, (_, i) => ({
+      id: `i${i}`,
+      x: (i * 2) % 8,
+      y: Math.floor(i / 4) * 2,
+      w: 2,
+      h: 2,
+    }))
     l.push({ id: 'fixed', x: 2, y: 9, w: 4, h: 1, static: true })
     expect(validate(l, 8)).toEqual([])
     for (let step = 0; step < 400; step++) {

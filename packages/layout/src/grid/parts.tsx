@@ -280,7 +280,12 @@ function useItemDrag(ctx: GridContextValue, id: string, kind: Drag['kind']) {
         if (key === last.current) return
         next = moveItemFn(committed, id, x, y, opts)
       } else {
-        const [w, h] = snapSize(d.start.w + dx / stepX, d.start.h + dy / stepY, ctx.constraints.get(id) ?? {}, opts.cols)
+        const [w, h] = snapSize(
+          d.start.w + dx / stepX,
+          d.start.h + dy / stepY,
+          ctx.constraints.get(id) ?? {},
+          opts.cols,
+        )
         key = `${w}x${h}`
         if (key === last.current) return
         next = resizeItemFn(committed, id, w, h, opts)
@@ -390,7 +395,11 @@ export function Placeholder(props: PlaceholderProps) {
   const ctx = useGridContext('Placeholder')
   const id = useStoreSelector(ctx.drag, (d) => d?.id ?? null)
   const kind = useStoreSelector(ctx.drag, (d) => d?.kind ?? null)
-  const target = useStoreSelector(ctx.state.store, (l) => (id ? (l.find((i) => i.id === id) ?? null) : null), shallowEqual)
+  const target = useStoreSelector(
+    ctx.state.store,
+    (l) => (id ? (l.find((i) => i.id === id) ?? null) : null),
+    shallowEqual,
+  )
   const element = useRender(
     'div',
     render,

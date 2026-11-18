@@ -7,7 +7,14 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['**/dist/**', '**/.next/**', '**/storybook-static/**', '**/node_modules/**', '**/test-results/**', '**/next-env.d.ts'],
+    ignores: [
+      '**/dist/**',
+      '**/.next/**',
+      '**/storybook-static/**',
+      '**/node_modules/**',
+      '**/test-results/**',
+      '**/next-env.d.ts',
+    ],
   },
   {
     files: ['**/*.{ts,tsx,js,mjs}'],

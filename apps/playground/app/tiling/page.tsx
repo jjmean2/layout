@@ -6,11 +6,7 @@ import { useRef, useState } from 'react'
 import { Workspace } from '@/components/workspace-panes'
 
 const initial: TilingLayout = createLayout(
-  splitNode(
-    'row',
-    [pane('editor'), splitNode('column', [pane('list'), pane('frame')], [0.5, 0.5])],
-    [0.55, 0.45],
-  ),
+  splitNode('row', [pane('editor'), splitNode('column', [pane('list'), pane('frame')], [0.5, 0.5])], [0.55, 0.45]),
 )
 
 export default function TilingPage() {
@@ -31,11 +27,20 @@ export default function TilingPage() {
             {h.id} 보이기
           </button>
         ))}
-        <span data-testid="layout-json" style={{ fontSize: 10, opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        <span
+          data-testid="layout-json"
+          style={{ fontSize: 10, opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden' }}
+        >
           {JSON.stringify(layout)}
         </span>
       </header>
-      <SidePanels.Root ref={workspaceRef} className="workspace" layout={side} onLayoutChange={setSide} data-testid="workspace">
+      <SidePanels.Root
+        ref={workspaceRef}
+        className="workspace"
+        layout={side}
+        onLayoutChange={setSide}
+        data-testid="workspace"
+      >
         <SidePanels.Panel side="left" className="side" render={<aside />}>
           <div className="side-inner">탐색</div>
           <SidePanels.ResizeHandle className="sash" />
