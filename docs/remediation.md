@@ -1,6 +1,6 @@
 # 리뷰 결과 근본 수정 설계
 
-- 상태: 구현 중 (2026-11-18). PR #1~#4가 `main`에 머지된 뒤 `main` 위에 새 stack으로 진행한다
+- 상태: 구현 완료 (2026-11-18). `main` 위의 stack 8개 레이어로 진행했다. 결과는 맨 끝 "구현 결과"
 - 대상: `packages/layout` v1
 - 결정 (권장안 채택):
   - 사이드 패널 손잡이를 `SidePanels.Separator`(Root 직계)로 옮기고, HoverTrigger는 별도 요소로 두되 tab 순서에서 뺀다
@@ -386,3 +386,59 @@ hook이 추가되거나 이름이 바뀐다. `onLayoutChange`에 인자가 추�
 | `fix/a11y-model` | C, D | **바뀜** |
 | `fix/api-hooks` | G | **바뀜** |
 | `docs/design-v2` | `docs/design.md` 3장 재작성, README, 이 문서의 상태 갱신 | 없음 |
+
+---
+
+## 구현 결과 (2026-11-18)
+
+### 레이어와 완료 기준
+
+| 레이어 | 완료 기준 | 결과 |
+|---|---|---|
+| `fix/tooling` | lint, 포매터, CI, 컴포넌트 테스트 기반 | ESLint 기준값 29건 기록, Prettier 서식 커밋 분리, Vitest browser 프로젝트, CI workflow |
+| `fix/packaging` | `node`가 `dist`의 모든 entry를 import | 통과. 빌드마다 `check-dist.mjs`가 검사. publint `--strict`, attw(esm-only) 통과 |
+| `fix/controller` | 한 핸들러의 액션 두 번 (controlled, uncontrolled), 부모 거절 | 통과. controller 상태 전이 테스트 10개(Node), 컴포넌트 테스트 3개 |
+| `fix/render-purity` | lint 0건, mount 1회 / StrictMode / fallback e2e | 통과. lint를 CI blocking으로 전환 |
+| `fix/render-prop` | `_init`/`_payload` 미사용, `/rsc` dev hydration 0건 | 통과 |
+| `fix/a11y-model` | Enter로 접은 뒤 포커스 유지, 트리거 클릭, Escape 레이어, 이름 누락 0건 | 통과. dev e2e가 이름 누락 경고를 실패로 처리, storybook e2e에 axe |
+| `fix/api-hooks` | 액션 전용 hook이 layout 변경에 리렌더 0회, 공백 포함 pane id | 통과 |
+| `docs/design-v2` | 설계 문서 3장과 실제 구조 일치 | 이 문서와 함께 |
+
+### 설계에서 달라진 점
+
+| 설계 | 구현 | 이유 |
+|---|---|---|
+| ESLint에 `@typescript-eslint` | `@babel/eslint-parser` + `eslint-plugin-react-hooks` | TypeScript 7 패키지에 JS API가 없어 typescript-eslint가 돌지 않는다. 타입 정보 규칙은 쓰지 않는다 |
+| SidePanels Separator 값은 0~100 퍼센트 | 패널 너비 px, 최소 0(접힘), 최대 = maxSize 또는 측정한 가용 너비 + `aria-valuetext` | 퍼센트는 Root 너비가 필요해 서버와 첫 렌더 값이 달라진다. APG는 0~100을 "보통"으로 둘 뿐 요구하지 않는다. 측정 전에는 현재 너비를 최대값으로 써서 서버와 클라이언트가 같다 |
+| 이동 손잡이에 `aria-roledescription` + 조작 안내 + live region 알림 | `role="button"`만 주고 이름은 사용자가 준다 | "라이브러리는 문구를 갖지 않는다" 결정과 충돌한다. live region 알림은 하지 않았다 (아래 미구현) |
+| 최신 값 ref를 `useEffectEvent`로 | `useLatest` (layout effect에서 갱신) | `useEffectEvent`는 Effect 안에서만 호출할 수 있다 |
+| 드래그로 접기는 v1 제외 | 최소 너비의 절반보다 좁히면 접히고, 접힌 Separator를 끌면 펼쳐진다 | Separator가 접힌 상태에서도 남게 되면서, 끌어서 펼치는 동작이 필요해졌다 |
+| `onLayoutPreview` (드래그 중 값) | 구현하지 않음 | `useXxxLayout(selector)`가 드래그 중 값을 구독할 수 있어 별도 콜백이 필요 없다 |
+
+### 공개 API 변경
+
+| 이전 | 이후 |
+|---|---|
+| `<SidePanels.ResizeHandle />` (Panel 자식) | `<SidePanels.Separator side="left" />` (Root 자식) |
+| `HoverTrigger` = `div role="button"`, tab 가능, Enter로 열기 | `<button type="button" tabIndex={-1}>`, 클릭으로 토글 |
+| 기본 영어 `aria-label` (손잡이, separator, 트리거) | 없음. 패널과 pane의 `aria-label`을 참조하거나 사용자가 준다 |
+| `onLayoutChange(layout)` | `onLayoutChange(layout, details)` |
+| `render`는 요소만 | 요소 또는 `(props, state) => 요소`. `className`, `style`도 state 함수 허용 |
+| style 병합: 라이브러리 값 우선 | 사용자 값 우선, 라이브러리 배치 키만 보호 |
+| 그 밖의 속성 병합: 라이브러리 우선(data/aria/role/tabIndex 제외) | 사용자 값 우선 |
+| `useSidePanels`, `useTiling`, `useGrid`만 | `useXxxActions`, `useXxxLayout` 추가 |
+| peer `react >=19` | `^19.0.0` |
+| `dist` 상대 import에 확장자 없음 | `.js` 확장자 (Node ESM) |
+
+### 실행한 검증 (마지막 레이어 기준)
+
+- 단위 + 컴포넌트 테스트 57개 (Vitest, Node + Chromium)
+- lint 0건, Prettier, typecheck(TS 7), build + dist 검사, publint, attw
+- e2e: playground prod(Chromium, WebKit) 69개 통과 1개 skip, playground dev 69개, showcase prod/dev 각 7개, storybook 14개(axe 포함)
+
+### 실행하지 않은 것, 구현하지 않은 것
+
+- CI는 push하지 않아 GitHub Actions에서 돌려보지 않았다. 같은 명령을 로컬에서 실행했다.
+- Firefox, 스크린 리더 확인.
+- 이동 결과 live region 알림, 조작 안내 문구 (문구를 사용자가 주는 API가 필요하다).
+- LICENSE와 `license` 필드 (종류 미정).
