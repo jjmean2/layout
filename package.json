@@ -9,7 +9,10 @@
     "e2e": "pnpm build && pnpm --filter playground --filter showcase --filter storybook e2e",
     "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev",
     "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev",
-    "storybook": "pnpm --filter storybook dev"
+    "storybook": "pnpm --filter storybook dev",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devEngines": {
     "packageManager": {
@@ -18,5 +21,13 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.21.0"
+  "packageManager": "pnpm@12.21.0",
+  "devDependencies": {
+    "@babel/core": "8.1.2",
+    "@babel/eslint-parser": "8.1.2",
+    "eslint": "10.15.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "prettier": "3.10.1"
+  }
 }
