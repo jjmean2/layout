@@ -85,9 +85,12 @@ test.describe('Grid', () => {
   })
 
   test('square cells in a scrolling container do not oscillate', async ({ page }) => {
-    await page.goto('/grid')
+    await gotoGrid(page)
     await page.setViewportSize({ width: 1280, height: 300 })
     const grid = page.getByTestId('grid')
+    // 측정과 리사이즈가 끝난 뒤부터 샘플링한다. 진동이라면 이후에도 값이 계속 바뀐다.
+    await expect.poll(() => grid.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+    await expect(grid).not.toHaveAttribute('data-resizing', '')
     const samples: string[] = []
     for (let i = 0; i < 10; i++) {
       samples.push(await grid.evaluate((el) => getComputedStyle(el).getPropertyValue('--grid-cell-w')))

@@ -146,6 +146,11 @@ export function Root(props: RootProps) {
       timer = setTimeout(() => el.removeAttribute('data-resizing'), 150)
     }
     measure()
+    // 이전 실행(StrictMode 재실행, cols/gap 변경)의 cleanup은 transition이 튀지 않도록 속성을 남긴다.
+    // 너비가 같아 measure가 아무것도 하지 않았다면 남은 속성을 끄는 일을 여기서 이어받는다.
+    if (timer === undefined && el.hasAttribute('data-resizing')) {
+      timer = setTimeout(() => el.removeAttribute('data-resizing'), 150)
+    }
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
     observer?.observe(el)
     return () => {
