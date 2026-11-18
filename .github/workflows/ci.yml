@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+        # 기존 위반을 고치는 레이어에서 blocking으로 바꾼다 (docs/remediation.md H)
+        continue-on-error: true
+      - run: pnpm typecheck
+      - run: pnpm --filter playground exec playwright install --with-deps chromium webkit
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm --filter playground --filter showcase --filter storybook e2e
