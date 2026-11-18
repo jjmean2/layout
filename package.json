@@ -1,6 +1,7 @@
 {
   "name": "layout",
   "private": true,
+  "license": "0BSD",
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook build",
