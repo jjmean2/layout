@@ -173,6 +173,7 @@ export function Root(props: RootProps) {
       children,
     },
     rest,
+    { dragging: dragging !== null },
   )
   return <RootContext.Provider value={ctx}>{element}</RootContext.Provider>
 }
@@ -315,6 +316,7 @@ export function Panel(props: PanelProps) {
       children: <PanelContext.Provider value={{ side }}>{children}</PanelContext.Provider>,
     },
     rest,
+    { side, state: vstate, dragging: isDragging },
   )
   return element
 }
@@ -349,6 +351,7 @@ export function Main(props: MainProps) {
       children,
     },
     rest,
+    {},
   )
 }
 
@@ -436,6 +439,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
       } satisfies CSSProperties,
     },
     rest,
+    { side, size },
   )
 }
 
@@ -484,6 +488,7 @@ export function HoverTrigger(props: HoverTriggerProps) {
       } satisfies CSSProperties,
     },
     rest,
+    { side, open },
   )
   return enabled ? element : null
 }

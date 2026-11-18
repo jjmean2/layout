@@ -183,6 +183,7 @@ export function Root(props: RootProps) {
       children,
     },
     rest,
+    { dragging },
   )
   return <GridContext.Provider value={ctx}>{element}</GridContext.Provider>
 }
@@ -257,6 +258,7 @@ export function Item(props: ItemProps) {
       children: <ItemContext.Provider value={id}>{children}</ItemContext.Provider>,
     },
     rest,
+    { id, dragging: drag !== null, dragKind: drag?.kind ?? null, static: !!entry?.static },
   )
 }
 
@@ -351,6 +353,7 @@ export function MoveHandle(props: MoveHandleProps) {
       children,
     },
     rest,
+    {},
   )
 }
 
@@ -396,6 +399,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
       children,
     },
     rest,
+    {},
   )
 }
 
@@ -420,6 +424,7 @@ export function Placeholder(props: PlaceholderProps) {
       children,
     },
     rest,
+    { dragKind: kind },
   )
   return target ? element : null
 }

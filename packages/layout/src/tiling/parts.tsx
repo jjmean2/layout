@@ -21,7 +21,6 @@ import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
-import { useIsClient } from '../internal/use-is-client.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
 import type { LayoutChangeHandler, LayoutController } from '../internal/controller.js'
 import { useLayoutController } from '../internal/use-layout-controller.js'
@@ -297,6 +296,7 @@ export function Root(props: RootProps) {
       children,
     },
     rest,
+    { dragging },
   )
   return <TilingContext.Provider value={ctx}>{element}</TilingContext.Provider>
 }
@@ -458,6 +458,7 @@ export function Pane(props: PaneProps) {
       children,
     },
     rest,
+    { id, placement: view.placement, focused, dragging },
   )
 }
 
@@ -550,6 +551,7 @@ export function MoveHandle(props: MoveHandleProps) {
         }
       : { children },
     rest,
+    { floating },
   )
 }
 
@@ -649,6 +651,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
       style: edgeStyle(edge),
     },
     rest,
+    { edge },
   )
   return floating ? element : null
 }
@@ -831,6 +834,7 @@ export function Separator(props: SeparatorProps) {
       style,
     },
     rest,
+    { direction: separator.direction, dragging },
   )
 }
 
