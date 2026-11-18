@@ -6,7 +6,7 @@
   - 사이드 패널 손잡이를 `SidePanels.Separator`(Root 직계)로 옮기고, HoverTrigger는 별도 요소로 두되 tab 순서에서 뺀다
   - `onLayoutChange`는 놓을 때 한 번 호출하는 의미를 유지하고 `details`를 추가한다
   - 라벨은 라이브러리가 문구를 갖지 않고 관계(`aria-labelledby`)로 만든다
-  - LICENSE 종류는 미정이다
+  - LICENSE는 0BSD (가장 허용 범위가 넓은 OSI 승인 라이선스)
 - 원칙: 리뷰 지적을 하나씩 덧대지 않는다. 지적들을 만든 **원인 구조**를 바꾸고, 그 결과로 지적이 사라지게 한다. 각 원인마다 **지금 실패하는 테스트**를 먼저 만들고, 그 테스트가 통과하는 것을 완료 기준으로 삼는다.
 
 ## 0. 원인 요약
@@ -448,7 +448,6 @@ hook이 추가되거나 이름이 바뀐다. `onLayoutChange`에 인자가 추�
 - CI는 push하지 않아 GitHub Actions에서 돌려보지 않았다. 같은 명령을 로컬에서 실행했다.
 - Firefox, 스크린 리더 확인.
 - 이동 결과 live region 알림, 조작 안내 문구 (문구를 사용자가 주는 API가 필요하다).
-- LICENSE와 `license` 필드 (종류 미정).
 - controlled 부모가 값을 비동기로 받아들이면(transition, 비동기 검증) 다음 렌더에서 한 번 원래 값으로 돌아갔다가 새 값을 받는다.
 - `render`, `className`, `style` 함수가 받는 part 상태는 타입이 `Record<string, unknown>`이다. part별 상태 타입은 아직 없다.
 - lint에는 타입 정보를 쓰는 규칙이 없다 (TypeScript 7과 typescript-eslint 비호환).
