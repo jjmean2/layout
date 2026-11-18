@@ -222,9 +222,9 @@ test.describe('Tiling geometry and bounds', () => {
   })
 })
 
-test.describe('Tiling showcase (transform + overflow ancestors)', () => {
+test.describe('Tiling containment (transform + overflow ancestors)', () => {
   test("bounds 'container' keeps the window inside the frame", async ({ page }) => {
-    await page.goto('/showcase')
+    await page.goto('/containment')
     await page.getByTestId('float-c-a').dispatchEvent('click')
     expect(await inLayer(page, 'c-a')).toBe(false)
     const frame = (await page.getByTestId('frame-container').boundingBox())!
@@ -235,7 +235,7 @@ test.describe('Tiling showcase (transform + overflow ancestors)', () => {
   })
 
   test("bounds 'viewport' escapes a transformed, clipped ancestor", async ({ page }) => {
-    await page.goto('/showcase')
+    await page.goto('/containment')
     await page.getByTestId('float-v-a').dispatchEvent('click')
     expect(await inLayer(page, 'v-a')).toBe(true)
     const frame = (await page.getByTestId('frame-viewport').boundingBox())!

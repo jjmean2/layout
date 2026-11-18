@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground build",
-    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground typecheck",
+    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase build",
+    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase typecheck",
     "test": "pnpm --filter @justwonder/layout test",
-    "e2e": "pnpm build && pnpm --filter playground e2e",
-    "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev"
+    "e2e": "pnpm build && pnpm --filter playground --filter showcase e2e",
+    "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev",
+    "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev"
   },
   "devEngines": {
     "packageManager": {

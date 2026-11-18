@@ -8,7 +8,7 @@ const make = (prefix: string): TilingLayout =>
   createLayout(splitNode('row', [pane(`${prefix}-a`), pane(`${prefix}-b`)]))
 
 /** 스크롤되는 문서 안, transform과 overflow: hidden이 걸린 영역에 Tiling을 넣는다. */
-export default function ShowcasePage() {
+export default function ContainmentPage() {
   const [contained, setContained] = useState(() => make('c'))
   const [escaping, setEscaping] = useState(() => make('v'))
   const frame = {
@@ -20,7 +20,7 @@ export default function ShowcasePage() {
   } as const
   return (
     <div style={{ padding: '24px 48px' }}>
-      <h1>Showcase</h1>
+      <h1>Containment</h1>
       <p>각 영역은 transform과 overflow: hidden이 걸린 컨테이너다.</p>
       <h2>bounds: container</h2>
       <div style={frame} data-testid="frame-container">
