@@ -22,7 +22,8 @@ import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
 import { useIsClient } from '../internal/use-is-client.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state.js'
+import type { LayoutChangeHandler, LayoutController } from '../internal/controller.js'
+import { useLayoutController } from '../internal/use-layout-controller.js'
 import { useRender } from '../internal/use-render.js'
 import {
   allPaneIds,
@@ -103,7 +104,7 @@ interface Runtime {
 }
 
 interface TilingContextValue {
-  state: LayoutState<TilingLayout>
+  layout: LayoutController<TilingLayout>
   options: Store<Options>
   runtime: Store<Runtime>
   hosts: PaneHosts
@@ -150,7 +151,8 @@ function optionsEqual(a: Options, b: Options): boolean {
 export type RootProps = PartProps<{
   layout?: TilingLayout
   defaultLayout?: TilingLayout
-  onLayoutChange?: (layout: TilingLayout) => void
+  /** 변경이 확정될 때(놓을 때, 키 입력, 액션) 한 번 호출된다. */
+  onLayoutChange?: LayoutChangeHandler<TilingLayout>
   /** 형제 pane 사이 간격(px). separator가 이 간격의 가운데에 놓인다. 기본값 0 */
   gap?: number
   /** separator를 드래그할 때 pane의 최소 크기(px). 기본값 48 */
@@ -175,7 +177,7 @@ export function Root(props: RootProps) {
     children,
     ...rest
   } = props
-  const state = useLayoutState<TilingLayout>({ layout, defaultLayout, fallback: emptyLayout, onLayoutChange })
+  const controller = useLayoutController<TilingLayout>({ layout, defaultLayout, onLayoutChange }, emptyLayout)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const panesRef = useRef<HTMLDivElement | null>(null)
   const idBase = useId()
@@ -195,7 +197,7 @@ export function Root(props: RootProps) {
     let layer: { element: HTMLElement; container: HTMLElement } | null = null
     const optionStore = createStore<Options>(options)
     return {
-      state,
+      layout: controller,
       options: optionStore,
       runtime: createStore<Runtime>({ focused: null, dragging: null, bounds: null }),
       hosts: new PaneHosts(),
@@ -221,8 +223,6 @@ export function Root(props: RootProps) {
       },
     }
   })
-  ctx.state = state
-
   useIsoLayoutEffect(() => {
     ctx.options.update((prev) => (optionsEqual(prev, options) ? prev : options))
   })
@@ -327,11 +327,11 @@ export function Panes({ children }: PanesProps) {
   const isClient = useIsClient()
   const order = useRef<PaneId[]>([])
 
-  const ids = useStoreSelector(ctx.state.store, allPaneIds, arrayEqual)
-  const hiddenIds = useStoreSelector(ctx.state.store, (l) => l.hidden.map((h) => h.id), arrayEqual)
+  const ids = useStoreSelector(ctx.layout, allPaneIds, arrayEqual)
+  const hiddenIds = useStoreSelector(ctx.layout, (l) => l.hidden.map((h) => h.id), arrayEqual)
   const keepHiddenMounted = useStoreSelector(ctx.options, (o) => o.keepHiddenMounted)
   const bounds = useStoreSelector(ctx.options, (o) => o.bounds)
-  const targets = useStoreSelector(ctx.state.store, (l) => hostTargets(l, bounds), arrayEqual)
+  const targets = useStoreSelector(ctx.layout, (l) => hostTargets(l, bounds), arrayEqual)
 
   // DOM 순서는 pane이 추가된 순서로 고정한다. 순서를 바꾸면 노드가 다시 붙으면서 iframe이 재로드된다.
   const stable = useMemo(() => {
@@ -406,7 +406,7 @@ export function Pane(props: PaneProps) {
   const { render, ref, children, ...rest } = props
   const ctx = useTilingContext('Pane')
   const id = usePaneId('Pane')
-  const view = useStoreSelector(ctx.state.store, (l) => paneView(ctx, l, id), shallowEqual)
+  const view = useStoreSelector(ctx.layout, (l) => paneView(ctx, l, id), shallowEqual)
   const floatingView = view.placement === 'floating'
   const bounds = useStoreSelector(ctx.runtime, (r) => (floatingView ? r.bounds : null), shallowEqual)
   const options = useStoreSelector(ctx.options, (o) => o)
@@ -444,7 +444,7 @@ export function Pane(props: PaneProps) {
     if (!ctx.runtime.get().focused || ctx.runtime.get().focused !== id) {
       ctx.runtime.update((r) => ({ ...r, focused: id }))
     }
-    if (view.placement === 'floating') ctx.state.commit((l) => bringToFrontFn(l, id))
+    if (view.placement === 'floating') ctx.layout.commit((l) => bringToFrontFn(l, id), { reason: 'action', source: id })
   }
   const onFocusCapture = () => {
     if (ctx.runtime.get().focused !== id) ctx.runtime.update((r) => ({ ...r, focused: id }))
@@ -475,7 +475,7 @@ export function Pane(props: PaneProps) {
 
 function floatingRectGetter(ctx: TilingContextValue, id: PaneId) {
   return () => {
-    const entry = ctx.state.store.get().floating.find((f) => f.id === id)
+    const entry = ctx.layout.get().floating.find((f) => f.id === id)
     if (!entry) return null
     return displayedRect(entry.rect, ctx.runtime.get().bounds, ctx.options.get())
   }
@@ -492,7 +492,7 @@ export function MoveHandle(props: MoveHandleProps) {
   const { step = 10, render, children, ...rest } = props
   const ctx = useTilingContext('MoveHandle')
   const id = usePaneId('MoveHandle')
-  const floating = useStoreSelector(ctx.state.store, (l) => l.floating.some((f) => f.id === id))
+  const floating = useStoreSelector(ctx.layout, (l) => l.floating.some((f) => f.id === id))
   const current = floatingRectGetter(ctx, id)
   const start = useRef<Rect | null>(null)
 
@@ -506,16 +506,19 @@ export function MoveHandle(props: MoveHandleProps) {
     onMove: ({ dx, dy }) => {
       const s = start.current
       if (!s) return
-      ctx.state.preview(moveFloating(ctx.state.committed(), id, { ...s, x: s.x + dx, y: s.y + dy }))
+      ctx.layout.preview(moveFloating(ctx.layout.getCommitted(), id, { ...s, x: s.x + dx, y: s.y + dy }))
     },
     onEnd: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
       const shown = current()
-      ctx.state.commit(shown ? moveFloating(ctx.state.store.get(), id, shown) : ctx.state.store.get())
+      ctx.layout.commit(shown ? moveFloating(ctx.layout.get(), id, shown) : ctx.layout.get(), {
+        reason: 'drag',
+        source: id,
+      })
     },
     onCancel: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
-      ctx.state.cancel()
+      ctx.layout.cancel()
     },
   })
 
@@ -537,7 +540,7 @@ export function MoveHandle(props: MoveHandleProps) {
       ctx.runtime.get().bounds,
       ctx.options.get(),
     )
-    ctx.state.commit((l) => moveFloating(l, id, next))
+    ctx.layout.commit((l) => moveFloating(l, id, next), { reason: 'keyboard', source: id })
   }
 
   const element = useRender(
@@ -592,7 +595,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
   const { edge = 'bottom-right', step = 10, render, ...rest } = props
   const ctx = useTilingContext('ResizeHandle')
   const id = usePaneId('ResizeHandle')
-  const floating = useStoreSelector(ctx.state.store, (l) => l.floating.some((f) => f.id === id))
+  const floating = useStoreSelector(ctx.layout, (l) => l.floating.some((f) => f.id === id))
   const current = floatingRectGetter(ctx, id)
   const start = useRef<Rect | null>(null)
 
@@ -605,16 +608,21 @@ export function ResizeHandle(props: ResizeHandleProps) {
     onMove: ({ dx, dy }) => {
       const s = start.current
       if (!s) return
-      ctx.state.preview(moveFloating(ctx.state.committed(), id, resizeRect(s, edge, dx, dy, ctx.options.get().minSize)))
+      ctx.layout.preview(
+        moveFloating(ctx.layout.getCommitted(), id, resizeRect(s, edge, dx, dy, ctx.options.get().minSize)),
+      )
     },
     onEnd: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
       const shown = current()
-      ctx.state.commit(shown ? moveFloating(ctx.state.store.get(), id, shown) : ctx.state.store.get())
+      ctx.layout.commit(shown ? moveFloating(ctx.layout.get(), id, shown) : ctx.layout.get(), {
+        reason: 'drag',
+        source: id,
+      })
     },
     onCancel: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
-      ctx.state.cancel()
+      ctx.layout.cancel()
     },
   })
 
@@ -632,7 +640,10 @@ export function ResizeHandle(props: ResizeHandleProps) {
     if (!delta) return
     event.preventDefault()
     const next = resizeRect(s, edge, delta[0], delta[1], ctx.options.get().minSize)
-    ctx.state.commit((l) => moveFloating(l, id, displayedRect(next, ctx.runtime.get().bounds, ctx.options.get())))
+    ctx.layout.commit((l) => moveFloating(l, id, displayedRect(next, ctx.runtime.get().bounds, ctx.options.get())), {
+      reason: 'keyboard',
+      source: id,
+    })
   }
 
   const element = useRender(
@@ -667,13 +678,13 @@ export interface SeparatorsProps {
 export function Separators({ children }: SeparatorsProps) {
   const ctx = useTilingContext('Separators')
   const keys = useStoreSelector(
-    ctx.state.store,
+    ctx.layout,
     (l) => ctx.geometry(l.root, ctx.options.get().gap).separators.map((s) => s.key),
     arrayEqual,
   )
   const gap = useStoreSelector(ctx.options, (o) => o.gap)
   const infos = useMemo(() => {
-    const geometry = ctx.geometry(ctx.state.store.get().root, gap)
+    const geometry = ctx.geometry(ctx.layout.get().root, gap)
     return keys.map((key) => {
       const s = geometry.separators.find((x) => x.key === key)!
       return { key, path: s.path, index: s.index, direction: s.direction }
@@ -705,16 +716,16 @@ export function Separator(props: SeparatorProps) {
   const ctx = useTilingContext('Separator')
   const gap = useStoreSelector(ctx.options, (o) => o.gap)
   const geometry = useStoreSelector(
-    ctx.state.store,
+    ctx.layout,
     (l) => ctx.geometry(l.root, gap).separators.find((s) => s.key === separator.key) ?? null,
   )
-  const ratio = useStoreSelector(ctx.state.store, (l) => {
+  const ratio = useStoreSelector(ctx.layout, (l) => {
     const node = splitAt(l.root, separator.path)
     const a = node?.sizes[separator.index] ?? 0
     const b = node?.sizes[separator.index + 1] ?? 0
     return a + b > 0 ? Math.round((a / (a + b)) * 100) : 50
   })
-  const controls = useStoreSelector(ctx.state.store, (l) => {
+  const controls = useStoreSelector(ctx.layout, (l) => {
     const child = splitAt(l.root, separator.path)?.children[separator.index]
     return child ? ctx.domId(leafIds(child)[0]!) : undefined
   })
@@ -723,7 +734,7 @@ export function Separator(props: SeparatorProps) {
   const row = separator.direction === 'row'
 
   const measure = () => {
-    const layout = ctx.state.committed()
+    const layout = ctx.layout.getCommitted()
     const node = splitAt(layout.root, separator.path)
     const split = ctx.geometry(layout.root, gap).splits.get(pathKey(separator.path))
     const rootEl = ctx.rootRef.current
@@ -751,17 +762,17 @@ export function Separator(props: SeparatorProps) {
       const d = drag.current
       if (!d) return
       const delta = (row ? dx : dy) / d.available
-      ctx.state.preview(
-        moveSeparator(ctx.state.committed(), separator.path, separator.index, d.startSizes, delta, d.min),
+      ctx.layout.preview(
+        moveSeparator(ctx.layout.getCommitted(), separator.path, separator.index, d.startSizes, delta, d.min),
       )
     },
     onEnd: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
-      ctx.state.commit(ctx.state.store.get())
+      ctx.layout.commit(ctx.layout.get(), { reason: 'drag', source: separator.key })
     },
     onCancel: () => {
       ctx.runtime.update((r) => ({ ...r, dragging: null }))
-      ctx.state.cancel()
+      ctx.layout.cancel()
     },
   })
 
@@ -778,7 +789,13 @@ export function Separator(props: SeparatorProps) {
     const d = measure()
     if (!d) return
     const delta = Number.isFinite(px) ? px / d.available : px > 0 ? 1 : -1
-    ctx.state.commit(moveSeparator(ctx.state.committed(), separator.path, separator.index, d.startSizes, delta, d.min))
+    ctx.layout.commit(
+      moveSeparator(ctx.layout.getCommitted(), separator.path, separator.index, d.startSizes, delta, d.min),
+      {
+        reason: 'keyboard',
+        source: separator.key,
+      },
+    )
   }
 
   const style: CSSProperties = geometry
@@ -872,26 +889,26 @@ type TilingActions = Omit<TilingApi, 'layout' | 'focused'>
 function createActions(ctx: TilingContextValue): TilingActions {
   return {
     split: (target, newId, direction, options) =>
-      ctx.state.commit((l) => splitFn(l, target, newId, direction, options)),
-    close: (id) => ctx.state.commit((l) => closeFn(l, id)),
-    hide: (id) => ctx.state.commit((l) => hideFn(l, id)),
-    show: (id) => ctx.state.commit((l) => showFn(l, id)),
+      ctx.layout.commit((l) => splitFn(l, target, newId, direction, options), { reason: 'action', source: newId }),
+    close: (id) => ctx.layout.commit((l) => closeFn(l, id), { reason: 'action', source: id }),
+    hide: (id) => ctx.layout.commit((l) => hideFn(l, id), { reason: 'action', source: id }),
+    show: (id) => ctx.layout.commit((l) => showFn(l, id), { reason: 'action', source: id }),
     float: (id, rect) => {
       const r = rect ?? defaultFloatRect(ctx, id)
-      ctx.state.commit((l) => floatFn(l, id, r))
+      ctx.layout.commit((l) => floatFn(l, id, r), { reason: 'action', source: id })
       focusPane(ctx, id)
     },
     dock: (id, target) => {
-      ctx.state.commit((l) => dockFn(l, id, target))
+      ctx.layout.commit((l) => dockFn(l, id, target), { reason: 'action', source: id })
       focusPane(ctx, id)
     },
-    swap: (a, b) => ctx.state.commit((l) => swapFn(l, a, b)),
-    bringToFront: (id) => ctx.state.commit((l) => bringToFrontFn(l, id)),
+    swap: (a, b) => ctx.layout.commit((l) => swapFn(l, a, b), { reason: 'action', source: a }),
+    bringToFront: (id) => ctx.layout.commit((l) => bringToFrontFn(l, id), { reason: 'action', source: id }),
     focus: (id) => focusPane(ctx, id),
     focusNeighbor: (direction) => {
       const from = ctx.runtime.get().focused
       if (!from) return
-      const l = ctx.state.store.get()
+      const l = ctx.layout.get()
       const next = neighbor(ctx.geometry(l.root, ctx.options.get().gap), from, direction)
       if (next) focusPane(ctx, next)
     },
@@ -911,7 +928,7 @@ function actionsFor(ctx: TilingContextValue): TilingActions {
 /** layout 전체를 구독한다. layout이 바뀔 때마다 리렌더된다. */
 export function useTiling(): TilingApi {
   const ctx = useTilingContext('useTiling')
-  const layout = useStoreSelector(ctx.state.store, (l) => l)
+  const layout = useStoreSelector(ctx.layout, (l) => l)
   const focused = useStoreSelector(ctx.runtime, (r) => r.focused)
   return useMemo<TilingApi>(() => ({ layout, focused, ...actionsFor(ctx) }), [ctx, layout, focused])
 }
@@ -932,7 +949,7 @@ export interface PaneApi {
 export function usePane(): PaneApi {
   const ctx = useTilingContext('usePane')
   const id = usePaneId('usePane')
-  const placement = useStoreSelector(ctx.state.store, (l) => paneView(ctx, l, id).placement)
+  const placement = useStoreSelector(ctx.layout, (l) => paneView(ctx, l, id).placement)
   const focused = useStoreSelector(ctx.runtime, (r) => r.focused === id)
   return useMemo<PaneApi>(() => {
     const a = actionsFor(ctx)

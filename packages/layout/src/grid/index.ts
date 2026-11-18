@@ -21,3 +21,4 @@ export {
   validate,
 } from './model/index.js'
 export type { Collision, GridItemLayout, GridLayout, GridOptions, SizeConstraints } from './model/index.js'
+export type { ChangeDetails, ChangeReason, LayoutChangeHandler } from '../internal/controller.js'

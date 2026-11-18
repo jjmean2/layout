@@ -21,7 +21,8 @@ import { createStore, shallowEqual, useStoreSelector, type Store } from '../inte
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state.js'
+import type { LayoutController, LayoutChangeHandler } from '../internal/controller.js'
+import { useLayoutController } from '../internal/use-layout-controller.js'
 import { useRender } from '../internal/use-render.js'
 import {
   clamp,
@@ -59,12 +60,13 @@ type Reveal = Record<Side, boolean>
 type Configs = Record<Side, PanelConfig>
 
 interface RootContextValue {
-  state: LayoutState<SidePanelsLayout>
+  layout: LayoutController<SidePanelsLayout>
   reveal: Store<Reveal>
   configs: Store<Configs>
   dragging: Store<Side | null>
   revealers: Record<Side, HoverReveal>
-  mainMinSize: RefObject<number>
+  /** Main이 등록한 최소 너비(px) */
+  mainMinSize: Store<number>
   rootRef: RefObject<HTMLDivElement | null>
   panelIds: Record<Side, string>
   triggerRefs: Record<Side, RefObject<HTMLElement | null>>
@@ -95,15 +97,15 @@ function visualState(side: SideLayout, revealOpen: boolean, config: PanelConfig)
 export type RootProps = PartProps<{
   layout?: SidePanelsLayout
   defaultLayout?: SidePanelsLayout
-  onLayoutChange?: (layout: SidePanelsLayout) => void
+  /** 변경이 확정될 때(놓을 때, 키 입력, 액션) 한 번 호출된다. */
+  onLayoutChange?: LayoutChangeHandler<SidePanelsLayout>
   children?: ReactNode
 }>
 
 export function Root(props: RootProps) {
   const { layout, defaultLayout, onLayoutChange, render, ref, children, ...rest } = props
-  const state = useLayoutState<SidePanelsLayout>({ layout, defaultLayout, fallback: {}, onLayoutChange })
+  const controller = useLayoutController<SidePanelsLayout>({ layout, defaultLayout, onLayoutChange }, {})
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const mainMinSize = useRef(0)
   const idBase = useId()
 
   const [ctx] = useState<RootContextValue>(() => {
@@ -119,21 +121,18 @@ export function Root(props: RootProps) {
         }
       })
     return {
-      state,
+      layout: controller,
       reveal,
       configs,
       dragging: createStore<Side | null>(null),
       revealers: { left: makeRevealer('left'), right: makeRevealer('right') },
-      mainMinSize,
+      mainMinSize: createStore(0),
       rootRef,
       panelIds: { left: `${idBase}-left`, right: `${idBase}-right` },
       triggerRefs: { left: { current: null }, right: { current: null } },
       panelRefs: { left: { current: null }, right: { current: null } },
     }
   })
-  // useLayoutState가 돌려주는 함수와 store는 안정적이다.
-  ctx.state = state
-
   useEffect(
     () => () => {
       ctx.revealers.left.dispose()
@@ -143,7 +142,7 @@ export function Root(props: RootProps) {
   )
 
   // 펼쳐지면 overlay 상태를 정리한다.
-  const layoutValue = useStoreSelector(state.store, (l) => l)
+  const layoutValue = useStoreSelector(ctx.layout, (l) => l)
   useIsoLayoutEffect(() => {
     for (const side of ['left', 'right'] as const) {
       if (!getSide(layoutValue, side).collapsed && ctx.reveal.get()[side]) {
@@ -228,12 +227,12 @@ export function Panel(props: PanelProps) {
     ctx.configs.update((c) => (shallowEqual(c[side], config) ? c : { ...c, [side]: config }))
   }, [ctx, side, config])
 
-  const sideLayout = useStoreSelector(ctx.state.store, (l) => sideFromLayout(l, side, config), shallowEqual)
+  const sideLayout = useStoreSelector(ctx.layout, (l) => sideFromLayout(l, side, config), shallowEqual)
   const revealOpen = useStoreSelector(ctx.reveal, (r) => r[side])
   const isDragging = useStoreSelector(ctx.dragging, (d) => d === side)
   const vstate = visualState(sideLayout, revealOpen, config)
   const size = clamp(sideLayout.size, minSize, maxSize)
-  const mainMin = ctx.mainMinSize.current ?? 0
+  const mainMin = useStoreSelector(ctx.mainMinSize, (n) => n)
 
   const style: CSSProperties & Record<`--${string}`, string> = {
     '--side-panel-size': `${size}px`,
@@ -331,7 +330,10 @@ export type MainProps = PartProps<{
 export function Main(props: MainProps) {
   const { minSize = 0, render, children, ...rest } = props
   const ctx = useRootContext('Main')
-  ctx.mainMinSize.current = minSize
+  useIsoLayoutEffect(() => {
+    ctx.mainMinSize.set(minSize)
+    return () => ctx.mainMinSize.set(0)
+  }, [ctx, minSize])
   return useRender(
     'div',
     render,
@@ -365,33 +367,33 @@ export function ResizeHandle(props: ResizeHandleProps) {
   const { side } = panel
   const dir = side === 'left' ? 1 : -1
   const config = useStoreSelector(ctx.configs, (c) => c[side])
-  const sideLayout = useStoreSelector(ctx.state.store, (l) => sideFromLayout(l, side, config), shallowEqual)
+  const sideLayout = useStoreSelector(ctx.layout, (l) => sideFromLayout(l, side, config), shallowEqual)
   const size = clamp(sideLayout.size, config.minSize, config.maxSize)
   const start = useRef(0)
 
   const maxAllowed = useCallback(() => {
     const rootWidth = ctx.rootRef.current?.clientWidth ?? Number.POSITIVE_INFINITY
     const other: Side = side === 'left' ? 'right' : 'left'
-    const otherLayout = sideFromLayout(ctx.state.store.get(), other, ctx.configs.get()[other])
+    const otherLayout = sideFromLayout(ctx.layout.get(), other, ctx.configs.get()[other])
     const otherWidth = otherLayout.collapsed ? 0 : otherLayout.size
-    return Math.min(config.maxSize, rootWidth - (ctx.mainMinSize.current ?? 0) - otherWidth)
+    return Math.min(config.maxSize, rootWidth - ctx.mainMinSize.get() - otherWidth)
   }, [ctx, side, config.maxSize])
 
-  const apply = (next: number) => setSizeFn(ctx.state.committed(), side, clamp(next, config.minSize, maxAllowed()))
+  const apply = (next: number) => setSizeFn(ctx.layout.getCommitted(), side, clamp(next, config.minSize, maxAllowed()))
 
   const onPointerDown = useDragGesture({
     onStart: () => {
       start.current = size
       ctx.dragging.set(side)
     },
-    onMove: ({ dx }) => ctx.state.preview(apply(start.current + dx * dir)),
+    onMove: ({ dx }) => ctx.layout.preview(apply(start.current + dx * dir)),
     onEnd: () => {
       ctx.dragging.set(null)
-      ctx.state.commit(ctx.state.store.get())
+      ctx.layout.commit(ctx.layout.get(), { reason: 'drag', source: side })
     },
     onCancel: () => {
       ctx.dragging.set(null)
-      ctx.state.cancel()
+      ctx.layout.cancel()
     },
   })
 
@@ -402,10 +404,10 @@ export function ResizeHandle(props: ResizeHandleProps) {
     else if (event.key === 'ArrowRight') next = apply(size + amount * dir)
     else if (event.key === 'Home') next = apply(config.minSize)
     else if (event.key === 'End') next = apply(maxAllowed())
-    else if (event.key === 'Enter') next = toggleCollapsedFn(ctx.state.committed(), side)
+    else if (event.key === 'Enter') next = toggleCollapsedFn(ctx.layout.getCommitted(), side)
     if (!next) return
     event.preventDefault()
-    ctx.state.commit(next)
+    ctx.layout.commit(next, { reason: 'keyboard', source: side })
   }
 
   return useRender(
@@ -445,7 +447,7 @@ export function HoverTrigger(props: HoverTriggerProps) {
   const { side, render, ref, ...rest } = props
   const ctx = useRootContext('HoverTrigger')
   const config = useStoreSelector(ctx.configs, (c) => c[side])
-  const collapsed = useStoreSelector(ctx.state.store, (l) => sideFromLayout(l, side, config).collapsed)
+  const collapsed = useStoreSelector(ctx.layout, (l) => sideFromLayout(l, side, config).collapsed)
   const open = useStoreSelector(ctx.reveal, (r) => r[side])
   const enabled = collapsed && config.hoverOverlay !== false
   const revealer = ctx.revealers[side]
@@ -499,13 +501,14 @@ export interface SidePanelsApi {
 
 export function useSidePanels(): SidePanelsApi {
   const ctx = useRootContext('useSidePanels')
-  const layout = useStoreSelector(ctx.state.store, (l) => l)
+  const layout = useStoreSelector(ctx.layout, (l) => l)
   return useMemo(
     () => ({
       layout,
-      toggle: (side) => ctx.state.commit((l) => toggleCollapsedFn(l, side)),
-      setCollapsed: (side, collapsed) => ctx.state.commit((l) => setCollapsedFn(l, side, collapsed)),
-      setSize: (side, size) => ctx.state.commit((l) => setSizeFn(l, side, size)),
+      toggle: (side) => ctx.layout.commit((l) => toggleCollapsedFn(l, side), { reason: 'action', source: side }),
+      setCollapsed: (side, collapsed) =>
+        ctx.layout.commit((l) => setCollapsedFn(l, side, collapsed), { reason: 'action', source: side }),
+      setSize: (side, size) => ctx.layout.commit((l) => setSizeFn(l, side, size), { reason: 'action', source: side }),
       openOverlay: (side) => ctx.revealers[side].openNow(),
       closeOverlay: (side) => ctx.revealers[side].closeNow(),
     }),
