@@ -1,6 +1,7 @@
 export * as Grid from './parts.js'
-export { useGrid } from './parts.js'
+export { useGrid, useGridActions, useGridLayout } from './parts.js'
 export type {
+  GridActions,
   GridApi,
   ItemProps as GridItemProps,
   MoveHandleProps as GridMoveHandleProps,

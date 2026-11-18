@@ -7,7 +7,7 @@ import {
   show,
   splitNode,
   usePane,
-  useTiling,
+  useTilingActions,
   type FocusDirection,
   type TilingLayout,
 } from '@justwonder/layout/tiling'
@@ -104,7 +104,8 @@ export function OrderWorkspace() {
 
 /** Alt + 방향키로 인접 pane에 포커스를 옮긴다. 키 바인딩은 사용하는 쪽이 정한다. */
 function FocusShortcuts() {
-  const { focusNeighbor } = useTiling()
+  // 액션만 쓰므로 layout을 구독하지 않는다 (드래그 중 리렌더 없음)
+  const { focusNeighbor } = useTilingActions()
   useEffect(() => {
     const keys: Record<string, FocusDirection> = {
       ArrowLeft: 'left',

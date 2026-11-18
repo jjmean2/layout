@@ -1,5 +1,5 @@
 export * as Tiling from './parts.js'
-export { usePane, useTiling } from './parts.js'
+export { usePane, useTiling, useTilingActions, useTilingLayout } from './parts.js'
 export type {
   FloatingBounds,
   FloatingOptions,
@@ -13,6 +13,7 @@ export type {
   SeparatorInfo,
   SeparatorProps as TilingSeparatorProps,
   SeparatorsProps as TilingSeparatorsProps,
+  TilingActions,
   TilingApi,
 } from './parts.js'
 export {

@@ -573,12 +573,13 @@ export interface SidePanelsApi {
   closeOverlay: (side: Side) => void
 }
 
-export function useSidePanels(): SidePanelsApi {
-  const ctx = useRootContext('useSidePanels')
-  const layout = useStoreSelector(ctx.layout, (l) => l)
-  return useMemo(
+export type SidePanelsActions = Omit<SidePanelsApi, 'layout'>
+
+/** 액션만 돌려준다. layout을 구독하지 않으므로 레이아웃이 바뀌어도 리렌더되지 않는다. */
+export function useSidePanelsActions(): SidePanelsActions {
+  const ctx = useRootContext('useSidePanelsActions')
+  return useMemo<SidePanelsActions>(
     () => ({
-      layout,
       toggle: (side) => ctx.layout.commit((l) => toggleCollapsedFn(l, side), { reason: 'action', source: side }),
       setCollapsed: (side, collapsed) =>
         ctx.layout.commit((l) => setCollapsedFn(l, side, collapsed), { reason: 'action', source: side }),
@@ -586,6 +587,22 @@ export function useSidePanels(): SidePanelsApi {
       openOverlay: (side) => ctx.revealers[side].openNow(),
       closeOverlay: (side) => ctx.revealers[side].closeNow(),
     }),
-    [ctx, layout],
+    [ctx],
   )
+}
+
+/** layout을 구독한다. selector를 주면 고른 값이 바뀔 때만 리렌더된다 (드래그 중 미리보기 포함). */
+export function useSidePanelsLayout<S = SidePanelsLayout>(
+  selector: (layout: SidePanelsLayout) => S = (l) => l as S,
+  isEqual?: (a: S, b: S) => boolean,
+): S {
+  const ctx = useRootContext('useSidePanelsLayout')
+  return useStoreSelector(ctx.layout, selector, isEqual)
+}
+
+/** layout 전체 구독 + 액션. 드래그 중에도 매 프레임 리렌더되므로, 액션만 필요하면 useSidePanelsActions를 쓴다. */
+export function useSidePanels(): SidePanelsApi {
+  const actions = useSidePanelsActions()
+  const layout = useSidePanelsLayout()
+  return useMemo(() => ({ layout, ...actions }), [layout, actions])
 }

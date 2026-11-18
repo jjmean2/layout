@@ -442,12 +442,13 @@ export interface GridApi {
   removeItem: (id: string) => void
 }
 
-export function useGrid(): GridApi {
-  const ctx = useGridContext('useGrid')
-  const layout = useStoreSelector(ctx.layout, (l) => l)
-  return useMemo<GridApi>(
+export type GridActions = Omit<GridApi, 'layout'>
+
+/** 액션만 돌려준다. layout을 구독하지 않는다. */
+export function useGridActions(): GridActions {
+  const ctx = useGridContext('useGridActions')
+  return useMemo<GridActions>(
     () => ({
-      layout,
       moveItem: (id, x, y) =>
         ctx.layout.commit((l) => moveItemFn(l, id, x, y, ctx.options.get()), { reason: 'action', source: id }),
       resizeItem: (id, w, h) =>
@@ -456,6 +457,22 @@ export function useGrid(): GridApi {
         ctx.layout.commit((l) => addItemFn(l, item, ctx.options.get().cols), { reason: 'action', source: item.id }),
       removeItem: (id) => ctx.layout.commit((l) => removeItemFn(l, id), { reason: 'action', source: id }),
     }),
-    [ctx, layout],
+    [ctx],
   )
+}
+
+/** layout을 구독한다. selector를 주면 고른 값이 바뀔 때만 리렌더된다. */
+export function useGridLayout<S = GridLayout>(
+  selector: (layout: GridLayout) => S = (l) => l as S,
+  isEqual?: (a: S, b: S) => boolean,
+): S {
+  const ctx = useGridContext('useGridLayout')
+  return useStoreSelector(ctx.layout, selector, isEqual)
+}
+
+/** layout 전체 구독 + 액션. 액션만 필요하면 useGridActions를 쓴다. */
+export function useGrid(): GridApi {
+  const actions = useGridActions()
+  const layout = useGridLayout()
+  return useMemo(() => ({ layout, ...actions }), [layout, actions])
 }

@@ -141,6 +141,14 @@ function withoutNameProps<T extends Record<string, unknown>>(props: T): T {
   return rest as T
 }
 
+/**
+ * 사용자 pane id를 DOM id 조각으로 바꾼다. 공백 등은 aria-controls/aria-labelledby(공백 구분 id 목록)를 깨뜨리므로
+ * 영문자, 숫자, '-' 외의 문자는 '_<코드>_'로 바꾼다. 같은 입력은 항상 같은 결과다 (렌더 중 호출해도 순수하다).
+ */
+function escapeId(id: string): string {
+  return id.replace(/[^A-Za-z0-9-]/g, (ch) => `_${ch.codePointAt(0)!.toString(36)}_`)
+}
+
 function optionsEqual(a: Options, b: Options): boolean {
   return (
     a.gap === b.gap &&
@@ -216,7 +224,7 @@ export function Root(props: RootProps) {
           cache = { root, gap: g, value: computeTiledGeometry(root, g) }
         return cache.value
       },
-      domId: (id) => `${idBase}pane-${id}`,
+      domId: (id) => `${idBase}pane-${escapeId(id)}`,
       getLayer() {
         const container = optionStore.get().container ?? document.body
         if (layer && layer.container === container) return layer.element
@@ -901,8 +909,6 @@ function focusPane(ctx: TilingContextValue, id: PaneId) {
   requestAnimationFrame(() => document.getElementById(ctx.domId(id))?.focus({ preventScroll: true }))
 }
 
-type TilingActions = Omit<TilingApi, 'layout' | 'focused'>
-
 function createActions(ctx: TilingContextValue): TilingActions {
   return {
     split: (target, newId, direction, options) =>
@@ -942,10 +948,27 @@ function actionsFor(ctx: TilingContextValue): TilingActions {
   return actions
 }
 
-/** layout 전체를 구독한다. layout이 바뀔 때마다 리렌더된다. */
+export type TilingActions = Omit<TilingApi, 'layout' | 'focused'>
+
+/** 액션만 돌려준다. layout을 구독하지 않으므로 separator 드래그 중에도 리렌더되지 않는다. */
+export function useTilingActions(): TilingActions {
+  const ctx = useTilingContext('useTilingActions')
+  return actionsFor(ctx)
+}
+
+/** layout을 구독한다. selector를 주면 고른 값이 바뀔 때만 리렌더된다. */
+export function useTilingLayout<S = TilingLayout>(
+  selector: (layout: TilingLayout) => S = (l) => l as S,
+  isEqual?: (a: S, b: S) => boolean,
+): S {
+  const ctx = useTilingContext('useTilingLayout')
+  return useStoreSelector(ctx.layout, selector, isEqual)
+}
+
+/** layout 전체 구독 + 포커스 + 액션. 드래그 중 매 프레임 리렌더되므로, 액션만 필요하면 useTilingActions를 쓴다. */
 export function useTiling(): TilingApi {
   const ctx = useTilingContext('useTiling')
-  const layout = useStoreSelector(ctx.layout, (l) => l)
+  const layout = useTilingLayout()
   const focused = useStoreSelector(ctx.runtime, (r) => r.focused)
   return useMemo<TilingApi>(() => ({ layout, focused, ...actionsFor(ctx) }), [ctx, layout, focused])
 }
