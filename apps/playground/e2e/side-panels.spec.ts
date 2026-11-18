@@ -28,14 +28,26 @@ test.describe('SidePanels', () => {
     expect(await renders(page, 'main-content')).toBe(before + 1)
   })
 
-  test('resize respects min/max and main minSize', async ({ page }) => {
+  test('resize respects min/max; dragging below half the min size collapses, dragging out expands', async ({
+    page,
+  }) => {
     await page.goto('/side-panels')
+    const left = page.getByTestId('left')
     const handle = await center(page, '[data-testid=left-handle]')
-    await drag(page, handle, { x: handle.x - 400, y: handle.y })
-    await expect(page.getByTestId('layout-json')).toContainText('"size":180')
+    // 260 -> 120 (최소 180보다 작지만 절반 90보다 큼): 최소 너비로 고정
+    await drag(page, handle, { x: handle.x - 140, y: handle.y })
+    await expect(page.getByTestId('layout-json')).toContainText('"left":{"size":180,"collapsed":false}')
     const h2 = await center(page, '[data-testid=left-handle]')
     await drag(page, h2, { x: h2.x + 900, y: h2.y })
     await expect(page.getByTestId('layout-json')).toContainText('"size":480')
+    // 끝까지 좁히면 접힌다
+    const h3 = await center(page, '[data-testid=left-handle]')
+    await drag(page, h3, { x: 5, y: h3.y })
+    await expect(left).toHaveAttribute('data-state', 'collapsed')
+    // 접힌 Separator를 끌어 내면 펼쳐진다
+    const h4 = await center(page, '[data-testid=left-handle]')
+    await drag(page, h4, { x: h4.x + 250, y: h4.y })
+    await expect(left).toHaveAttribute('data-state', 'expanded')
   })
 
   test('keyboard: arrows, Home/End, Enter toggles collapse', async ({ page }) => {
@@ -52,6 +64,8 @@ test.describe('SidePanels', () => {
     await expect(handle).toHaveAttribute('aria-valuenow', '180')
     await page.keyboard.press('End')
     await expect(handle).toHaveAttribute('aria-valuenow', '480')
+    await expect(handle).toHaveAttribute('aria-valuemax', '480')
+    await expect(handle).toHaveAttribute('aria-valuetext', '480px')
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('left')).toHaveAttribute('data-state', 'collapsed')
   })
@@ -102,18 +116,54 @@ test.describe('SidePanels', () => {
     expect(Math.round((await aside.boundingBox())!.width)).toBe(280)
   })
 
-  test('hover overlay by keyboard: Enter opens and focuses panel, Esc closes and returns focus', async ({ page }) => {
+  test('Separator keeps focus when Enter collapses its panel, and Enter expands it again', async ({ page }) => {
+    await page.goto('/side-panels')
+    const handle = page.getByTestId('left-handle')
+    const left = page.getByTestId('left')
+    await handle.focus()
+    await page.keyboard.press('Enter')
+    await expect(left).toHaveAttribute('data-state', 'collapsed')
+    await expect(handle).toBeFocused()
+    await expect(handle).toHaveAttribute('aria-valuenow', '0')
+    await page.keyboard.press('Enter')
+    await expect(left).toHaveAttribute('data-state', 'expanded')
+    await expect(handle).toBeFocused()
+  })
+
+  test('HoverTrigger is a button outside the tab order; clicking toggles the overlay', async ({ page }) => {
     await page.goto('/side-panels')
     await page.getByTestId('toggle-left').click()
     const trigger = page.getByTestId('left-trigger')
-    await trigger.focus()
-    await page.keyboard.press('Enter')
+    await expect(trigger).toHaveAttribute('type', 'button')
+    await expect(trigger).toHaveAttribute('tabindex', '-1')
+    await trigger.dispatchEvent('click')
     const left = page.getByTestId('left')
     await expect(left).toHaveAttribute('data-state', 'overlay')
-    await expect(left).toBeFocused()
+    await trigger.dispatchEvent('click')
+    await expect(left).toHaveAttribute('data-state', 'collapsed')
+  })
+
+  test('Escape closes the overlay unless another layer already handled it', async ({ page }) => {
+    await page.goto('/side-panels')
+    await page.getByTestId('toggle-left').click()
+    const trigger = page.getByTestId('left-trigger')
+    const left = page.getByTestId('left')
+    // 다른 라이브러리의 dialog처럼 capture 단계에서 Escape를 처리하는 레이어
+    await page.evaluate(() => {
+      ;(window as unknown as { __foreign: (e: KeyboardEvent) => void }).__foreign = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') e.preventDefault()
+      }
+      document.addEventListener('keydown', (window as unknown as { __foreign: EventListener }).__foreign, true)
+    })
+    await trigger.dispatchEvent('click')
+    await expect(left).toHaveAttribute('data-state', 'overlay')
+    await page.keyboard.press('Escape')
+    await expect(left).toHaveAttribute('data-state', 'overlay')
+    await page.evaluate(() =>
+      document.removeEventListener('keydown', (window as unknown as { __foreign: EventListener }).__foreign, true),
+    )
     await page.keyboard.press('Escape')
     await expect(left).toHaveAttribute('data-state', 'collapsed')
-    await expect(trigger).toBeFocused()
   })
 
   test('hoverOverlay={false} renders no trigger', async ({ page }) => {

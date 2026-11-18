@@ -21,6 +21,7 @@ import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useNameCheck } from '../internal/dev-name.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
 import type { LayoutChangeHandler, LayoutController } from '../internal/controller.js'
 import { useLayoutController } from '../internal/use-layout-controller.js'
@@ -431,6 +432,11 @@ export function Pane(props: PaneProps) {
     style = { display: 'none' }
   }
 
+  const paneNameCheck = useNameCheck(
+    `Tiling.Pane (${id})`,
+    'Pass aria-label; separators and window handles are labelled by it.',
+  )
+
   const onPointerDownCapture = () => {
     if (!ctx.runtime.get().focused || ctx.runtime.get().focused !== id) {
       ctx.runtime.update((r) => ({ ...r, focused: id }))
@@ -445,8 +451,12 @@ export function Pane(props: PaneProps) {
     'div',
     render,
     {
+      checkRef: paneNameCheck,
       id: ctx.domId(id),
       tabIndex: -1,
+      // tiled: 이름 붙은 group, floating: 비모달 창(dialog). 표준 APG 패턴은 없어 선례를 따른다 (docs/remediation.md C-3).
+      role: view.placement === 'floating' ? 'dialog' : 'group',
+      'aria-modal': view.placement === 'floating' ? false : undefined,
       inert: view.placement === 'hidden' ? true : undefined,
       'data-pane-id': id,
       'data-placement': view.placement ?? undefined,
@@ -534,15 +544,17 @@ export function MoveHandle(props: MoveHandleProps) {
     ctx.layout.commit((l) => moveFloating(l, id, next), { reason: 'keyboard', source: id })
   }
 
+  const moveNameCheck = useNameCheck('Tiling.MoveHandle', 'Pass aria-label (e.g. "Move <pane name>").', true)
+
   // floating이 아니면 손잡이 동작 없이 children만 감싼다. 같은 요소를 유지해서 remount가 없다.
   return useRender(
     'div',
     render,
     floating
       ? {
+          checkRef: moveNameCheck,
+          role: 'button',
           tabIndex: 0,
-          'aria-label': 'Move window',
-          'aria-roledescription': 'move handle',
           'data-move-handle': '',
           onPointerDown,
           onKeyDown,
@@ -592,6 +604,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
   const current = floatingRectGetter(ctx, id)
   const start = useRef<Rect | null>(null)
 
+  const resizeNameCheck = useNameCheck('Tiling.ResizeHandle', 'Pass aria-label (e.g. "Resize <pane name>").')
   const onPointerDown = useDragGesture({
     onStart: () => {
       start.current = current()
@@ -643,8 +656,9 @@ export function ResizeHandle(props: ResizeHandleProps) {
     'div',
     render,
     {
+      checkRef: resizeNameCheck,
+      role: 'button',
       tabIndex: 0,
-      'aria-label': 'Resize window',
       'data-edge': edge,
       onPointerDown,
       onKeyDown,
@@ -827,7 +841,9 @@ export function Separator(props: SeparatorProps) {
       'aria-valuemin': 0,
       'aria-valuemax': 100,
       'aria-controls': controls,
-      'aria-label': 'Resize panes',
+      // APG: 기본(primary) pane을 이름으로 쓴다
+      'aria-labelledby':
+        rest['aria-label'] !== undefined || rest['aria-labelledby'] !== undefined ? undefined : controls,
       'data-dragging': dataAttr(dragging),
       onPointerDown,
       onKeyDown,

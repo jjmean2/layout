@@ -4,7 +4,7 @@ export type {
   RootProps as SidePanelsRootProps,
   PanelProps as SidePanelsPanelProps,
   MainProps as SidePanelsMainProps,
-  ResizeHandleProps as SidePanelsResizeHandleProps,
+  SeparatorProps as SidePanelsSeparatorProps,
   HoverTriggerProps as SidePanelsHoverTriggerProps,
   HoverOverlayOptions,
   SidePanelsApi,

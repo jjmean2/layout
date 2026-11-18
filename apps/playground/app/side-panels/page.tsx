@@ -28,27 +28,43 @@ export default function SidePanelsPage() {
           className="side"
           minSize={180}
           maxSize={480}
-          render={<aside />}
+          render={<aside aria-label="왼쪽 패널" />}
           data-testid="left"
         >
           <div className="side-inner">
             <p>왼쪽 패널</p>
             <input aria-label="left-input" />
           </div>
-          <SidePanels.ResizeHandle className="sash" data-testid="left-handle" />
         </SidePanels.Panel>
-        <SidePanels.HoverTrigger side="left" className="edge-zone" data-testid="left-trigger" />
+        <SidePanels.Separator side="left" className="sash" data-testid="left-handle" />
+        <SidePanels.HoverTrigger
+          side="left"
+          className="edge-zone"
+          data-testid="left-trigger"
+          aria-label="왼쪽 패널 보기"
+        />
         <SidePanels.Main className="main" minSize={240}>
           <div style={{ padding: 16 }}>
             <RenderCounter id="main-content" />
             Main 영역
           </div>
         </SidePanels.Main>
-        <SidePanels.Panel side="right" className="side" hoverOverlay={false} data-testid="right">
+        <SidePanels.Panel
+          side="right"
+          className="side"
+          hoverOverlay={false}
+          data-testid="right"
+          aria-label="오른쪽 패널"
+        >
           <div className="side-inner">오른쪽 패널 (hover overlay 꺼짐)</div>
-          <SidePanels.ResizeHandle className="sash" data-testid="right-handle" />
         </SidePanels.Panel>
-        <SidePanels.HoverTrigger side="right" className="edge-zone" data-testid="right-trigger" />
+        <SidePanels.Separator side="right" className="sash" data-testid="right-handle" />
+        <SidePanels.HoverTrigger
+          side="right"
+          className="edge-zone"
+          data-testid="right-trigger"
+          aria-label="오른쪽 패널 보기"
+        />
       </SidePanels.Root>
     </div>
   )

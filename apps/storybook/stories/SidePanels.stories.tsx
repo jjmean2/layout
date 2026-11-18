@@ -35,8 +35,8 @@ function Demo(args: Args) {
           <strong>왼쪽 패널</strong>
           <p className="muted">손잡이를 끌거나, 포커스 후 방향키 / Home / End / Enter.</p>
         </div>
-        <SidePanels.ResizeHandle className="sash" aria-label="왼쪽 패널 너비" />
       </SidePanels.Panel>
+      <SidePanels.Separator side="left" className="sash" aria-label="왼쪽 패널 너비" />
       <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="왼쪽 패널 열기" />
       <SidePanels.Main className="main" minSize={args.mainMinSize}>
         <h2 style={{ marginTop: 0 }}>Main</h2>
@@ -46,8 +46,8 @@ function Demo(args: Args) {
         <div className="side-inner">
           <strong>오른쪽 패널</strong>
         </div>
-        <SidePanels.ResizeHandle className="sash" aria-label="오른쪽 패널 너비" />
       </SidePanels.Panel>
+      <SidePanels.Separator side="right" className="sash" aria-label="오른쪽 패널 너비" />
       <SidePanels.HoverTrigger side="right" className="edge-zone" aria-label="오른쪽 패널 열기" />
     </SidePanels.Root>
   )
@@ -99,15 +99,15 @@ function ControlledFromOutsideDemo() {
       </div>
       <div className="demo-fill">
         <SidePanels.Root layout={layout} onLayoutChange={setLayout}>
-          <SidePanels.Panel side="left" className="side">
+          <SidePanels.Panel side="left" className="side" aria-label="왼쪽">
             <div className="side-inner">왼쪽</div>
-            <SidePanels.ResizeHandle className="sash" aria-label="왼쪽 패널 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="left" className="sash" aria-label="왼쪽 패널 너비" />
           <SidePanels.Main className="main">onLayoutChange는 놓을 때 한 번 호출된다.</SidePanels.Main>
-          <SidePanels.Panel side="right" className="side">
+          <SidePanels.Panel side="right" className="side" aria-label="오른쪽">
             <div className="side-inner">오른쪽</div>
-            <SidePanels.ResizeHandle className="sash" aria-label="오른쪽 패널 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="right" className="sash" aria-label="오른쪽 패널 너비" />
         </SidePanels.Root>
       </div>
     </div>

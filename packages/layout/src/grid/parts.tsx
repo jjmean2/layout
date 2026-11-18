@@ -15,6 +15,7 @@ import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useNameCheck } from '../internal/dev-name.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
 import type { LayoutChangeHandler, LayoutController } from '../internal/controller.js'
 import { useLayoutController } from '../internal/use-layout-controller.js'
@@ -248,6 +249,7 @@ export function Item(props: ItemProps) {
     'div',
     render,
     {
+      role: 'group',
       'data-grid-item': id,
       'data-dragging': dataAttr(drag !== null),
       'data-drag-kind': drag?.kind,
@@ -326,6 +328,7 @@ export function MoveHandle(props: MoveHandleProps) {
   const ctx = useGridContext('MoveHandle')
   const id = useItemId('MoveHandle')
   const onPointerDown = useItemDrag(ctx, id, 'move')
+  const moveNameCheck = useNameCheck('Grid.MoveHandle', 'Pass aria-label (e.g. "Move <widget name>").', true)
   const onKeyDown = (event: KeyboardEvent) => {
     const arrow = ARROWS[event.key]
     if (!arrow) return
@@ -342,9 +345,9 @@ export function MoveHandle(props: MoveHandleProps) {
     'div',
     render,
     {
+      checkRef: moveNameCheck,
+      role: 'button',
       tabIndex: 0,
-      'aria-label': 'Move item',
-      'aria-roledescription': 'move handle',
       onPointerDown,
       onKeyDown,
       style: { touchAction: 'none', cursor: 'grab' } satisfies CSSProperties,
@@ -363,6 +366,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
   const ctx = useGridContext('ResizeHandle')
   const id = useItemId('ResizeHandle')
   const onPointerDown = useItemDrag(ctx, id, 'resize')
+  const resizeNameCheck = useNameCheck('Grid.ResizeHandle', 'Pass aria-label (e.g. "Resize <widget name>").', false)
   const onKeyDown = (event: KeyboardEvent) => {
     const arrow = ARROWS[event.key]
     if (!arrow) return
@@ -382,8 +386,9 @@ export function ResizeHandle(props: ResizeHandleProps) {
     'div',
     render,
     {
+      checkRef: resizeNameCheck,
+      role: 'button',
       tabIndex: 0,
-      'aria-label': 'Resize item',
       onPointerDown,
       onKeyDown,
       style: {

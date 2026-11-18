@@ -29,13 +29,23 @@ export function Dashboard({ testPrefix = '' }: { testPrefix?: string }) {
           className="widget"
           data-testid={`${testPrefix}item-${item.id}`}
         >
-          <Grid.MoveHandle className="widget-bar" data-testid={`${testPrefix}move-${item.id}`} />
+          <Grid.MoveHandle
+            className="widget-bar"
+            data-testid={`${testPrefix}move-${item.id}`}
+            aria-label={`${item.id} 이동`}
+          />
           <div className="widget-body">
             <RenderCounter id={`${testPrefix}widget-${item.id}`} />
             {item.id}
             {item.static ? ' (고정)' : ''}
           </div>
-          {item.static ? null : <Grid.ResizeHandle className="corner" data-testid={`${testPrefix}resize-${item.id}`} />}
+          {item.static ? null : (
+            <Grid.ResizeHandle
+              className="corner"
+              data-testid={`${testPrefix}resize-${item.id}`}
+              aria-label={`${item.id} 크기`}
+            />
+          )}
         </Grid.Item>
       ))}
       <Grid.Placeholder className="drop-target" data-testid={`${testPrefix}placeholder`} />

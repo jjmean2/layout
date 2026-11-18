@@ -26,7 +26,7 @@ function resolveExternal<State>(external: AnyProps, state: State): AnyProps {
 
 /**
  * part 컴포넌트의 렌더 공통 처리. 렌더마다 조건 없이 한 번 호출한다.
- * - internal: 라이브러리가 정하는 props (style, data-*, aria-*, 이벤트, ref)
+ * - internal: 라이브러리가 정하는 props (style, data-*, aria-*, 이벤트, ref, checkRef)
  * - external: 사용자가 part에 넘긴 props (className, style은 state 함수일 수 있다)
  * - render: 기본 태그 대신 렌더할 요소, 또는 `(props, state) => 요소` 함수
  * - state: render 함수와 className/style 함수가 받는 part 상태
@@ -40,7 +40,11 @@ export function useRender<State>(
 ): ReactElement {
   const resolved = unwrapLazy(render)
   const renderElement = isElement(resolved) ? resolved : undefined
+  // checkRef: 개발 모드 검사용 ref (DOM 속성이 아니다)
+  const { checkRef, ...internalProps } = internal
+  internal = internalProps
   const ref = useMergedRefs(
+    checkRef as Ref<unknown> | undefined,
     internal.ref as Ref<unknown> | undefined,
     external.ref as Ref<unknown> | undefined,
     renderElement?.props.ref as Ref<unknown> | undefined,

@@ -22,14 +22,14 @@ function attach<T>(ref: Ref<T> | undefined, value: T): Cleanup | undefined {
  * ref 여러 개를 하나의 callback ref로 합친다. 입력 ref가 바뀔 때만 새 함수를 만든다.
  * 떼어낼 때 모든 ref를 정리한다 (함수 ref의 cleanup 실행, object ref는 null).
  */
-export function useMergedRefs<T>(a: Ref<T> | undefined, b: Ref<T> | undefined, c?: Ref<T>): RefCallback<T> {
+export function useMergedRefs<T>(a: Ref<T> | undefined, b: Ref<T> | undefined, c?: Ref<T>, d?: Ref<T>): RefCallback<T> {
   return useCallback(
     (value: T) => {
-      const cleanups = [attach(a, value), attach(b, value), attach(c, value)]
+      const cleanups = [attach(a, value), attach(b, value), attach(c, value), attach(d, value)]
       return () => {
         for (const cleanup of cleanups) cleanup?.()
       }
     },
-    [a, b, c],
+    [a, b, c, d],
   )
 }

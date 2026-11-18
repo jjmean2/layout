@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test'
 function trackErrors(page: Page) {
   const errors: string[] = []
   page.on('console', (m) => {
-    if (m.type() === 'error' || /hydrat/i.test(m.text())) errors.push(m.text())
+    if (m.type() === 'error' || /hydrat/i.test(m.text()) || m.text().includes('[@justwonder/layout]'))
+      errors.push(m.text())
   })
   page.on('pageerror', (e) => errors.push(e.message))
   return errors

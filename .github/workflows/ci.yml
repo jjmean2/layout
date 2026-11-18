@@ -29,3 +29,7 @@ jobs:
       - name: Package checks (publint, attw)
         run: pnpm --filter @justwonder/layout lint:package
       - run: pnpm --filter playground --filter showcase --filter storybook e2e
+      - name: e2e (next dev, StrictMode + dev-only accessible name checks)
+        run: pnpm --filter playground --filter showcase e2e
+        env:
+          E2E_MODE: dev

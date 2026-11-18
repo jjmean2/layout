@@ -7,7 +7,8 @@ export const test = base.extend<{ consoleErrors: string[] }>({
       const errors: string[] = []
       page.on('console', (msg) => {
         const text = msg.text()
-        if (msg.type() === 'error' || /hydrat/i.test(text)) errors.push(`[${msg.type()}] ${text}`)
+        if (msg.type() === 'error' || /hydrat/i.test(text) || text.includes('[@justwonder/layout]'))
+          errors.push(`[${msg.type()}] ${text}`)
       })
       page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`))
       await use(errors)

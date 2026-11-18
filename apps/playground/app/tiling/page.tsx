@@ -41,19 +41,19 @@ export default function TilingPage() {
         onLayoutChange={setSide}
         data-testid="workspace"
       >
-        <SidePanels.Panel side="left" className="side" render={<aside />}>
+        <SidePanels.Panel side="left" className="side" render={<aside aria-label="탐색" />}>
           <div className="side-inner">탐색</div>
-          <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
-        <SidePanels.HoverTrigger side="left" className="edge-zone" />
+        <SidePanels.Separator side="left" className="sash" />
+        <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 보기" />
         <SidePanels.Main className="main" minSize={320}>
           <Workspace layout={layout} onLayoutChange={setLayout} floating={{ bounds: workspaceRef }} />
         </SidePanels.Main>
-        <SidePanels.Panel side="right" className="side" data-testid="right-panel">
+        <SidePanels.Panel side="right" className="side" data-testid="right-panel" aria-label="속성">
           <div className="side-inner">속성</div>
-          <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
-        <SidePanels.HoverTrigger side="right" className="edge-zone" />
+        <SidePanels.Separator side="right" className="sash" />
+        <SidePanels.HoverTrigger side="right" className="edge-zone" aria-label="속성 보기" />
       </SidePanels.Root>
     </div>
   )

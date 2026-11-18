@@ -42,19 +42,20 @@ import { SidePanels } from '@justwonder/layout/side-panels'
 import { Tiling } from '@justwonder/layout/tiling'
 
 <SidePanels.Root ref={workspaceRef} defaultLayout={{ left: { size: 260, collapsed: false } }}>
-  <SidePanels.Panel side="left" render={<aside />}>
+  {/* 패널의 이름이 Separator의 이름이 된다. 라이브러리는 문구를 갖지 않는다 */}
+  <SidePanels.Panel side="left" render={<aside aria-label="탐색" />}>
     <Nav />
-    <SidePanels.ResizeHandle className="sash" />
   </SidePanels.Panel>
-  <SidePanels.HoverTrigger side="left" className="edge-zone" />
+  <SidePanels.Separator side="left" className="sash" />
+  <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 보기" />
   <SidePanels.Main>
     <Tiling.Root defaultLayout={layout} gap={4} floating={{ bounds: workspaceRef }}>
       <Tiling.Panes>
         {(pane) => (
-          <Tiling.Pane className="pane">
-            <Tiling.MoveHandle className="title">{pane.id}</Tiling.MoveHandle>
+          <Tiling.Pane className="pane" aria-label={titleOf(pane.id)}>
+            <Tiling.MoveHandle className="title">{titleOf(pane.id)}</Tiling.MoveHandle>
             <PaneBody id={pane.id} />
-            <Tiling.ResizeHandle edge="bottom-right" />
+            <Tiling.ResizeHandle edge="bottom-right" aria-label={`${titleOf(pane.id)} 크기`} />
           </Tiling.Pane>
         )}
       </Tiling.Panes>
@@ -64,4 +65,6 @@ import { Tiling } from '@justwonder/layout/tiling'
 </SidePanels.Root>
 ```
 
-전체 예시는 `apps/playground/app`에 있다.
+전체 예시는 `apps/showcase`(실제 앱 구성)와 `apps/storybook`(part별 옵션)에 있다.
+
+접근성 이름: 라이브러리는 기본 문구를 갖지 않는다. 패널과 pane에 `aria-label`을 주면 Separator는 그것을 이름으로 쓴다. 손잡이와 HoverTrigger에는 `aria-label`을 준다. 빠뜨리면 개발 모드에서 경고가 한 번 나온다.

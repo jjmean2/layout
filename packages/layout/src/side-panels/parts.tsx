@@ -20,6 +20,8 @@ import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { pushDismissLayer } from '../internal/dismiss-layers.js'
+import { useNameCheck } from '../internal/dev-name.js'
 import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
 import type { LayoutController, LayoutChangeHandler } from '../internal/controller.js'
 import { useLayoutController } from '../internal/use-layout-controller.js'
@@ -70,6 +72,9 @@ interface RootContextValue {
   rootRef: RefObject<HTMLDivElement | null>
   panelIds: Record<Side, string>
   triggerRefs: Record<Side, RefObject<HTMLElement | null>>
+  separatorRefs: Record<Side, RefObject<HTMLElement | null>>
+  /** 측정한 side별 가용 최대 너비(px). Separator의 aria-valuemax에 쓴다 */
+  available: Store<Record<Side, number | null>>
   panelRefs: Record<Side, RefObject<HTMLElement | null>>
 }
 
@@ -130,6 +135,8 @@ export function Root(props: RootProps) {
       rootRef,
       panelIds: { left: `${idBase}-left`, right: `${idBase}-right` },
       triggerRefs: { left: { current: null }, right: { current: null } },
+      separatorRefs: { left: { current: null }, right: { current: null } },
+      available: createStore<Record<Side, number | null>>({ left: null, right: null }),
       panelRefs: { left: { current: null }, right: { current: null } },
     }
   })
@@ -151,6 +158,38 @@ export function Root(props: RootProps) {
       }
     }
   }, [layoutValue, ctx])
+
+  // Separator의 aria-valuemax에 쓸 가용 너비를 측정한다. 렌더 없이 store만 갱신한다.
+  useIsoLayoutEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const measure = () => {
+      const width = el.clientWidth
+      const layoutNow = ctx.layout.get()
+      const configs = ctx.configs.get()
+      const widthOf = (side: Side) => {
+        const s = sideFromLayout(layoutNow, side, configs[side])
+        return s.collapsed ? 0 : s.size
+      }
+      const next = {
+        left: Math.max(0, Math.min(configs.left.maxSize, width - ctx.mainMinSize.get() - widthOf('right'))),
+        right: Math.max(0, Math.min(configs.right.maxSize, width - ctx.mainMinSize.get() - widthOf('left'))),
+      }
+      ctx.available.update((prev) => (shallowEqual(prev, next) ? prev : next))
+    }
+    measure()
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    observer?.observe(el)
+    const unsubscribe = [
+      ctx.layout.subscribe(measure),
+      ctx.mainMinSize.subscribe(measure),
+      ctx.configs.subscribe(measure),
+    ]
+    return () => {
+      observer?.disconnect()
+      for (const u of unsubscribe) u()
+    }
+  }, [ctx])
 
   const dragging = useStoreSelector(ctx.dragging, (d) => d)
 
@@ -179,11 +218,6 @@ export function Root(props: RootProps) {
 }
 
 /* ------------------------------------------------------------------ Panel */
-
-interface PanelContextValue {
-  side: Side
-}
-const PanelContext = createContext<PanelContextValue | null>(null)
 
 export type PanelProps = PartProps<{
   side: Side
@@ -262,37 +296,35 @@ export function Panel(props: PanelProps) {
   }
 
   const revealer = ctx.revealers[side]
+  const nameCheck = useNameCheck(
+    `SidePanels.Panel (${side})`,
+    'Give the panel an aria-label; its Separator is labelled by it.',
+  )
 
-  // hover로 연 overlay도 포커스 위치와 관계없이 Esc로 닫는다 (WCAG 1.4.13 dismissible).
+  // 열린 overlay는 dismiss layer stack에 올라간다. Escape는 맨 위 레이어만 닫는다 (WCAG 1.4.13 dismissible).
   useEffect(() => {
     if (vstate !== 'overlay') return
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return
+    return pushDismissLayer(() => {
       const panel = ctx.panelRefs[side].current
       const hadFocus = !!panel && panel.contains(document.activeElement)
       revealer.closeNow()
-      if (hadFocus) ctx.triggerRefs[side].current?.focus()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+      if (hadFocus) (ctx.triggerRefs[side].current ?? ctx.separatorRefs[side].current)?.focus()
+    })
   }, [vstate, ctx, side, revealer])
 
   const onPointerEnter = vstate === 'overlay' ? () => revealer.enter() : undefined
   const onPointerLeave = vstate === 'overlay' ? () => revealer.leave() : undefined
-  const onKeyDown =
-    vstate === 'overlay'
-      ? (event: KeyboardEvent) => {
-          if (event.key !== 'Escape') return
-          event.stopPropagation()
-          revealer.closeNow()
-          ctx.triggerRefs[side].current?.focus()
-        }
-      : undefined
   const onBlur =
     vstate === 'overlay'
       ? (event: FocusEvent<HTMLElement>) => {
           const next = event.relatedTarget as Node | null
-          if (next && (event.currentTarget.contains(next) || ctx.triggerRefs[side].current?.contains(next))) return
+          if (
+            next &&
+            (event.currentTarget.contains(next) ||
+              ctx.triggerRefs[side].current?.contains(next) ||
+              ctx.separatorRefs[side].current?.contains(next))
+          )
+            return
           if (next) revealer.closeNow()
         }
       : undefined
@@ -302,6 +334,7 @@ export function Panel(props: PanelProps) {
     render,
     {
       ref: ctx.panelRefs[side],
+      checkRef: nameCheck,
       id: ctx.panelIds[side],
       tabIndex: -1,
       inert: vstate === 'collapsed' ? true : undefined,
@@ -311,9 +344,8 @@ export function Panel(props: PanelProps) {
       style,
       onPointerEnter,
       onPointerLeave,
-      onKeyDown,
       onBlur,
-      children: <PanelContext.Provider value={{ side }}>{children}</PanelContext.Provider>,
+      children,
     },
     rest,
     { side, state: vstate, dragging: isDragging },
@@ -355,24 +387,37 @@ export function Main(props: MainProps) {
   )
 }
 
-/* ------------------------------------------------------------------ ResizeHandle */
+/* ------------------------------------------------------------------ Separator */
 
-export type ResizeHandleProps = PartProps<{
+export type SeparatorProps = PartProps<{
+  side: Side
   /** 키보드 한 단계(px). Shift를 누르면 5배. 기본값 10 */
   step?: number
 }>
 
-export function ResizeHandle(props: ResizeHandleProps) {
-  const { step = 10, render, ...rest } = props
-  const ctx = useRootContext('ResizeHandle')
-  const panel = useContext(PanelContext)
-  if (!panel) throw new Error('SidePanels.ResizeHandle must be used inside SidePanels.Panel')
-  const { side } = panel
+/**
+ * 패널과 Main 사이의 window splitter (WAI-ARIA APG). Root의 직계 자식으로 둔다.
+ * 패널이 접혀도 Root 가장자리에 남아 포커스를 유지하고, Enter로 다시 펼 수 있다.
+ * - 드래그: 최소 너비의 절반보다 좁히면 접히고, 접힌 상태에서 끌면 펼쳐진다.
+ * - 키보드: 방향키, Home(최소), End(최대), Enter(접기 전환).
+ * - 이름: 기본으로 패널을 aria-labelledby로 가리킨다. 패널에 aria-label을 준다.
+ */
+export function Separator(props: SeparatorProps) {
+  const { side, step = 10, render, ...rest } = props
+  const ctx = useRootContext('Separator')
   const dir = side === 'left' ? 1 : -1
   const config = useStoreSelector(ctx.configs, (c) => c[side])
   const sideLayout = useStoreSelector(ctx.layout, (l) => sideFromLayout(l, side, config), shallowEqual)
+  const isDragging = useStoreSelector(ctx.dragging, (d) => d === side)
+  const mainMin = useStoreSelector(ctx.mainMinSize, (n) => n)
+  const available = useStoreSelector(ctx.available, (a) => a[side])
   const size = clamp(sideLayout.size, config.minSize, config.maxSize)
+  const collapsed = sideLayout.collapsed
   const start = useRef(0)
+  const nameCheck = useNameCheck(
+    `SidePanels.Separator (${side})`,
+    'Give its panel an aria-label, or pass aria-label to the Separator.',
+  )
 
   const maxAllowed = useCallback(() => {
     const rootWidth = ctx.rootRef.current?.clientWidth ?? Number.POSITIVE_INFINITY
@@ -382,14 +427,19 @@ export function ResizeHandle(props: ResizeHandleProps) {
     return Math.min(config.maxSize, rootWidth - ctx.mainMinSize.get() - otherWidth)
   }, [ctx, side, config.maxSize])
 
-  const apply = (next: number) => setSizeFn(ctx.layout.getCommitted(), side, clamp(next, config.minSize, maxAllowed()))
+  /** 끌어서 정한 너비. 최소 너비의 절반보다 좁으면 접는다. */
+  const fromWidth = (width: number): SidePanelsLayout => {
+    const base = ctx.layout.getCommitted()
+    if (width < config.minSize / 2) return setCollapsedFn(base, side, true)
+    return setCollapsedFn(setSizeFn(base, side, clamp(width, config.minSize, maxAllowed())), side, false)
+  }
 
   const onPointerDown = useDragGesture({
     onStart: () => {
-      start.current = size
+      start.current = collapsed ? 0 : size
       ctx.dragging.set(side)
     },
-    onMove: ({ dx }) => ctx.layout.preview(apply(start.current + dx * dir)),
+    onMove: ({ dx }) => ctx.layout.preview(fromWidth(start.current + dx * dir)),
     onEnd: () => {
       ctx.dragging.set(null)
       ctx.layout.commit(ctx.layout.get(), { reason: 'drag', source: side })
@@ -402,44 +452,61 @@ export function ResizeHandle(props: ResizeHandleProps) {
 
   const onKeyDown = (event: KeyboardEvent) => {
     const amount = event.shiftKey ? step * 5 : step
+    const current = collapsed ? 0 : size
     let next: SidePanelsLayout | null = null
-    if (event.key === 'ArrowLeft') next = apply(size - amount * dir)
-    else if (event.key === 'ArrowRight') next = apply(size + amount * dir)
-    else if (event.key === 'Home') next = apply(config.minSize)
-    else if (event.key === 'End') next = apply(maxAllowed())
+    if (event.key === 'ArrowLeft') next = fromWidth(Math.max(config.minSize, current - amount * dir))
+    else if (event.key === 'ArrowRight') next = fromWidth(Math.max(config.minSize, current + amount * dir))
+    else if (event.key === 'Home') next = fromWidth(config.minSize)
+    else if (event.key === 'End') next = fromWidth(maxAllowed())
     else if (event.key === 'Enter') next = toggleCollapsedFn(ctx.layout.getCommitted(), side)
     if (!next) return
     event.preventDefault()
     ctx.layout.commit(next, { reason: 'keyboard', source: side })
   }
 
+  // 값은 패널 너비(px). 최대값은 maxSize, 없으면 측정한 가용 너비. 측정 전(서버, 첫 렌더)에는 현재 너비로 둔다.
+  const valueMax = Number.isFinite(config.maxSize) ? config.maxSize : Math.max(available ?? 0, size)
+  const hoverable = collapsed && config.hoverOverlay !== false
+  const hasOwnName = rest['aria-label'] !== undefined || rest['aria-labelledby'] !== undefined
+  const offset = collapsed ? '0px' : `min(${size}px, max(${config.minSize}px, calc(100% - ${mainMin}px)))`
+
   return useRender(
     'div',
     render,
     {
+      ref: ctx.separatorRefs[side],
+      checkRef: nameCheck,
       role: 'separator',
       tabIndex: 0,
       'aria-orientation': 'vertical',
       'aria-controls': ctx.panelIds[side],
-      'aria-valuenow': size,
-      'aria-valuemin': config.minSize,
-      'aria-valuemax': Number.isFinite(config.maxSize) ? config.maxSize : undefined,
-      'aria-label': side === 'left' ? 'Resize left panel' : 'Resize right panel',
+      'aria-labelledby': hasOwnName ? undefined : ctx.panelIds[side],
+      'aria-valuemin': 0,
+      'aria-valuemax': valueMax,
+      'aria-valuenow': collapsed ? 0 : size,
+      'aria-valuetext': collapsed ? undefined : `${size}px`,
       'data-side': side,
+      'data-state': collapsed ? 'collapsed' : 'expanded',
+      'data-dragging': dataAttr(isDragging),
       onPointerDown,
       onKeyDown,
+      // 접힌 상태의 Separator는 가장자리를 덮으므로 HoverTrigger와 같은 hover 영역으로 다룬다.
+      onPointerEnter: hoverable ? () => ctx.revealers[side].enter() : undefined,
+      onPointerLeave: hoverable ? () => ctx.revealers[side].leave() : undefined,
       style: {
         position: 'absolute',
         top: 0,
         bottom: 0,
-        [side === 'left' ? 'right' : 'left']: 0,
-        zIndex: 1,
+        [side]: offset,
+        // 펼친 상태에서는 경계선 가운데에, 접힌 상태에서는 Root 가장자리 안쪽에 붙는다 (Root 밖은 잘린다).
+        transform: collapsed ? 'none' : side === 'left' ? 'translateX(-50%)' : 'translateX(50%)',
+        zIndex: 3,
         touchAction: 'none',
         cursor: 'col-resize',
       } satisfies CSSProperties,
     },
     rest,
-    { side, size },
+    { side, size, collapsed, dragging: isDragging },
   )
 }
 
@@ -447,6 +514,10 @@ export function ResizeHandle(props: ResizeHandleProps) {
 
 export type HoverTriggerProps = PartProps<{ side: Side }>
 
+/**
+ * 접힌 패널을 overlay로 여는 버튼. 포인터를 올리면 지연 후 열리고, 클릭(탭, 스크린 리더 활성화)하면 바로 열고 닫는다.
+ * 키보드 사용자는 Separator의 Enter로 패널을 펴므로 tab 순서에서는 빠진다.
+ */
 export function HoverTrigger(props: HoverTriggerProps) {
   const { side, render, ...rest } = props
   const ctx = useRootContext('HoverTrigger')
@@ -455,36 +526,32 @@ export function HoverTrigger(props: HoverTriggerProps) {
   const open = useStoreSelector(ctx.reveal, (r) => r[side])
   const enabled = collapsed && config.hoverOverlay !== false
   const revealer = ctx.revealers[side]
+  const nameCheck = useNameCheck(`SidePanels.HoverTrigger (${side})`, 'Pass aria-label (e.g. "Show navigation").', true)
 
   const element = useRender(
-    'div',
+    'button',
     render,
     {
       ref: ctx.triggerRefs[side],
-      role: 'button',
-      tabIndex: 0,
+      checkRef: nameCheck,
+      type: 'button',
+      tabIndex: -1,
       'aria-expanded': open,
       'aria-controls': ctx.panelIds[side],
-      'aria-label': side === 'left' ? 'Show left panel' : 'Show right panel',
       'data-side': side,
       'data-state': open ? 'open' : 'closed',
       onPointerEnter: () => revealer.enter(),
       onPointerLeave: () => revealer.leave(),
-      onKeyDown: (event: KeyboardEvent) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          revealer.openNow()
-          requestAnimationFrame(() => ctx.panelRefs[side].current?.focus())
-        } else if (event.key === 'Escape' && open) {
-          revealer.closeNow()
-        }
-      },
+      onClick: () => (revealer.isOpen() ? revealer.closeNow() : revealer.openNow()),
       style: {
         position: 'absolute',
         top: 0,
         bottom: 0,
         [side]: 0,
         zIndex: 1,
+        padding: 0,
+        border: 0,
+        background: 'transparent',
       } satisfies CSSProperties,
     },
     rest,
