@@ -4,13 +4,15 @@
   "license": "0BSD",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook build",
-    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook typecheck",
-    "test": "pnpm --filter @justwonder/layout test",
-    "e2e": "pnpm build && pnpm --filter playground --filter showcase --filter storybook e2e",
-    "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev",
-    "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev",
-    "storybook": "pnpm --filter storybook dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint:package": "turbo run lint:package",
+    "e2e": "turbo run e2e",
+    "e2e:dev": "turbo run e2e:dev",
+    "dev": "turbo run dev --filter=playground",
+    "showcase": "turbo run dev --filter=showcase",
+    "storybook": "turbo run dev --filter=storybook",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -29,6 +31,7 @@
     "eslint": "10.15.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.14.0",
-    "prettier": "3.10.1"
+    "prettier": "3.10.1",
+    "turbo": "2.11.11"
   }
 }

@@ -18,21 +18,38 @@
 
 ## 개발
 
+작업 실행은 [Turborepo](https://turborepo.dev)가 맡는다. 태스크 간 의존(`turbo.json`)에 따라 필요한 빌드를 먼저 돌리고, 입력이 같으면 결과를 `.turbo/`에서 재사용한다.
+
 ```sh
 pnpm install
 pnpm --filter playground exec playwright install chromium webkit   # 브라우저 테스트와 e2e에 필요
-pnpm lint          # ESLint (react-hooks 규칙)
-pnpm format:check  # Prettier
+pnpm lint          # ESLint (react-hooks 규칙), 저장소 전체
+pnpm format:check  # Prettier, 저장소 전체
 pnpm test          # 모델 단위 테스트(Node) + 컴포넌트 테스트(Chromium)
-pnpm typecheck     # 라이브러리 검사 → 빌드(dist) → playground 검사. playground는 dist의 타입을 쓴다
-pnpm build         # 라이브러리 빌드 + playground next build
-pnpm showcase      # showcase (http://localhost:3200)
+pnpm typecheck     # 각 패키지 tsc. 앱은 라이브러리 dist의 타입을 쓰므로 라이브러리 build가 먼저 돈다
+pnpm build         # 라이브러리 → playground, showcase, storybook 빌드
+pnpm lint:package  # build 후 publint, attw
+pnpm showcase      # 라이브러리 build 후 showcase (http://localhost:3200)
 pnpm storybook     # storybook (http://localhost:6006)
-pnpm dev           # playground (http://localhost:3100)
+pnpm dev           # 라이브러리 build 후 playground (http://localhost:3100)
 
-pnpm e2e                                          # build 후 playground, showcase, storybook e2e
-pnpm build && E2E_MODE=dev pnpm --filter playground e2e   # next dev 대상 (StrictMode)
+pnpm e2e           # 각 앱 build 후 next start / storybook 정적 빌드 대상 e2e
+pnpm e2e:dev       # 라이브러리 build 후 next dev 대상 e2e (StrictMode, 개발 모드 경고 검사)
 ```
+
+태스크 의존 관계:
+
+| 태스크 | 먼저 실행되는 것 | 캐시 |
+|---|---|---|
+| `build` | 의존 패키지의 `build` | `dist/`, `.next/`, `storybook-static/` |
+| `typecheck` | 의존 패키지의 `build` | 로그 |
+| `test` | 없음 (src를 직접 테스트) | 로그 |
+| `lint:package` | 자기 `build` | 로그 |
+| `e2e` | 자기 `build` | 하지 않음 |
+| `e2e:dev` | 의존 패키지의 `build` | 하지 않음 |
+| `dev` | 의존 패키지의 `build` | 하지 않음 (persistent) |
+
+e2e는 Playwright 브라우저처럼 저장소 밖에 있는 것에 좌우되고, flaky한 통과가 캐시에 남으면 안 되므로 캐시하지 않는다.
 
 ## 사용 예
 
