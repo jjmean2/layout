@@ -10,8 +10,8 @@ import {
   removePane,
   replaceId,
   updateAt,
-} from './tree'
-import type { Direction, Edge, Path, PaneId, Placement, Rect, RestoreHint, TilingLayout } from './types'
+} from './tree.js'
+import type { Direction, Edge, Path, PaneId, Placement, Rect, RestoreHint, TilingLayout } from './types.js'
 
 export const emptyLayout: TilingLayout = { root: null, floating: [], hidden: [] }
 

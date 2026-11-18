@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { SidePanels } from './index'
+import { SidePanels } from './index.js'
 
 test('Root renders panels with state attributes', async () => {
   const screen = await render(

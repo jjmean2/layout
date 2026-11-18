@@ -1,5 +1,5 @@
-export * as Grid from './parts'
-export { useGrid } from './parts'
+export * as Grid from './parts.js'
+export { useGrid } from './parts.js'
 export type {
   GridApi,
   ItemProps as GridItemProps,
@@ -7,7 +7,7 @@ export type {
   PlaceholderProps as GridPlaceholderProps,
   ResizeHandleProps as GridResizeHandleProps,
   RootProps as GridRootProps,
-} from './parts'
+} from './parts.js'
 export {
   addItem,
   collides,
@@ -19,5 +19,5 @@ export {
   rows,
   snapSize,
   validate,
-} from './model'
-export type { Collision, GridItemLayout, GridLayout, GridOptions, SizeConstraints } from './model'
+} from './model/index.js'
+export type { Collision, GridItemLayout, GridLayout, GridOptions, SizeConstraints } from './model/index.js'

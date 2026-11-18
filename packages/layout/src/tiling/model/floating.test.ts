@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampFloatingRect, resizeRect } from './floating'
+import { clampFloatingRect, resizeRect } from './floating.js'
 
 const opts = { minVisible: 100, minSize: { width: 100, height: 60 } } as const
 

@@ -15,15 +15,15 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { acquireFloatingLayer, releaseFloatingLayer } from '../internal/floating-layer'
-import { dataAttr, mergeRefs } from '../internal/merge-props'
-import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store'
-import type { PartProps } from '../internal/types'
-import { useDragGesture } from '../internal/use-drag-gesture'
-import { useIsClient } from '../internal/use-is-client'
-import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state'
-import { useRender } from '../internal/use-render'
+import { acquireFloatingLayer, releaseFloatingLayer } from '../internal/floating-layer.js'
+import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
+import type { PartProps } from '../internal/types.js'
+import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useIsClient } from '../internal/use-is-client.js'
+import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
+import { useLayoutState, type LayoutState } from '../internal/use-layout-state.js'
+import { useRender } from '../internal/use-render.js'
 import {
   allPaneIds,
   bringToFront as bringToFrontFn,
@@ -59,8 +59,8 @@ import {
   type TiledGeometry,
   type TileNode,
   type TilingLayout,
-} from './model'
-import { PaneHosts } from './pane-host'
+} from './model/index.js'
+import { PaneHosts } from './pane-host.js'
 
 /* ------------------------------------------------------------------ types */
 

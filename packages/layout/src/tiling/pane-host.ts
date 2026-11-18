@@ -1,5 +1,5 @@
-import { moveNode } from '../internal/move-node'
-import type { PaneId } from './model'
+import { moveNode } from '../internal/move-node.js'
+import type { PaneId } from './model/index.js'
 
 /**
  * pane마다 라이브러리가 소유하는 DOM 노드(host). pane 내용은 이 노드에 portal로 렌더된다.

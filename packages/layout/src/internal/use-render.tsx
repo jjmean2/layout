@@ -1,5 +1,5 @@
 import { createElement, type ReactElement } from 'react'
-import { mergeProps, renderElement, type RenderProp } from './merge-props'
+import { mergeProps, renderElement, type RenderProp } from './merge-props.js'
 
 type AnyProps = Record<string, unknown>
 

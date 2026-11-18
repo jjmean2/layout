@@ -1,6 +1,6 @@
 import { useCallback, useReducer, useRef, useState } from 'react'
-import { createStore, deepEqual, type Store } from './store'
-import { useIsoLayoutEffect } from './use-iso-layout-effect'
+import { createStore, deepEqual, type Store } from './store.js'
+import { useIsoLayoutEffect } from './use-iso-layout-effect.js'
 
 export interface LayoutStateOptions<T> {
   layout: T | undefined

@@ -1,5 +1,5 @@
-export * as SidePanels from './parts'
-export { useSidePanels } from './parts'
+export * as SidePanels from './parts.js'
+export { useSidePanels } from './parts.js'
 export type {
   RootProps as SidePanelsRootProps,
   PanelProps as SidePanelsPanelProps,
@@ -8,6 +8,6 @@ export type {
   HoverTriggerProps as SidePanelsHoverTriggerProps,
   HoverOverlayOptions,
   SidePanelsApi,
-} from './parts'
-export { getSide, setCollapsed, setSize, toggleCollapsed } from './model'
-export type { Side, SideLayout, SidePanelsLayout } from './model'
+} from './parts.js'
+export { getSide, setCollapsed, setSize, toggleCollapsed } from './model.js'
+export type { Side, SideLayout, SidePanelsLayout } from './model.js'

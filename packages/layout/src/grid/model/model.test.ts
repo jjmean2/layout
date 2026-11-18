@@ -9,7 +9,7 @@ import {
   stepSize,
   validate,
   type GridLayout,
-} from './index'
+} from './index.js'
 
 const layout: GridLayout = [
   { id: 'a', x: 0, y: 0, w: 2, h: 2 },

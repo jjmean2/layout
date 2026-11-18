@@ -1,4 +1,4 @@
-import type { Direction, Edge, Path, PaneId, RestoreHint, TileNode } from './types'
+import type { Direction, Edge, Path, PaneId, RestoreHint, TileNode } from './types.js'
 
 export function pane(id: PaneId): TileNode {
   return { type: 'pane', id }

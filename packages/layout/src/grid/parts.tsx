@@ -11,13 +11,13 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { dataAttr, mergeRefs } from '../internal/merge-props'
-import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store'
-import type { PartProps } from '../internal/types'
-import { useDragGesture } from '../internal/use-drag-gesture'
-import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state'
-import { useRender } from '../internal/use-render'
+import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
+import type { PartProps } from '../internal/types.js'
+import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
+import { useLayoutState, type LayoutState } from '../internal/use-layout-state.js'
+import { useRender } from '../internal/use-render.js'
 import {
   addItem as addItemFn,
   moveItem as moveItemFn,
@@ -30,7 +30,7 @@ import {
   type GridLayout,
   type GridOptions,
   type SizeConstraints,
-} from './model'
+} from './model/index.js'
 
 interface Drag {
   id: string

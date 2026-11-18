@@ -24,7 +24,7 @@ import {
   validate,
   type TileNode,
   type TilingLayout,
-} from './index'
+} from './index.js'
 
 const base = () => {
   let l = split(emptyLayout, null, 'a', 'row')

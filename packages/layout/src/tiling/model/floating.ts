@@ -1,4 +1,4 @@
-import type { Rect } from './types'
+import type { Rect } from './types.js'
 
 export interface BoundsSize {
   width: number

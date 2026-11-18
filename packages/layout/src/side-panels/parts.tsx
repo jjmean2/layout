@@ -15,14 +15,14 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { createHoverReveal, type HoverReveal } from '../internal/hover-reveal'
-import { dataAttr, mergeRefs } from '../internal/merge-props'
-import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store'
-import type { PartProps } from '../internal/types'
-import { useDragGesture } from '../internal/use-drag-gesture'
-import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state'
-import { useRender } from '../internal/use-render'
+import { createHoverReveal, type HoverReveal } from '../internal/hover-reveal.js'
+import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
+import type { PartProps } from '../internal/types.js'
+import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
+import { useLayoutState, type LayoutState } from '../internal/use-layout-state.js'
+import { useRender } from '../internal/use-render.js'
 import {
   clamp,
   getSide,
@@ -32,7 +32,7 @@ import {
   type Side,
   type SideLayout,
   type SidePanelsLayout,
-} from './model'
+} from './model.js'
 
 export interface HoverOverlayOptions {
   /** hover 후 열릴 때까지 지연(ms). 기본값 150 */

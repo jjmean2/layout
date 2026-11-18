@@ -1,5 +1,5 @@
-export * from './types'
-export * from './ops'
+export * from './types.js'
+export * from './ops.js'
 export {
   computeTiledGeometry,
   evaluate,
@@ -14,6 +14,6 @@ export {
   type SeparatorGeometry,
   type SplitGeometry,
   type TiledGeometry,
-} from './geometry'
-export { leafIds, normalize, pane, splitNode } from './tree'
-export * from './floating'
+} from './geometry.js'
+export { leafIds, normalize, pane, splitNode } from './tree.js'
+export * from './floating.js'
