@@ -20,14 +20,16 @@
 
 ```sh
 pnpm install
-pnpm test          # 모델 단위 테스트
+pnpm --filter playground exec playwright install chromium webkit   # 브라우저 테스트와 e2e에 필요
+pnpm lint          # ESLint (react-hooks 규칙)
+pnpm format:check  # Prettier
+pnpm test          # 모델 단위 테스트(Node) + 컴포넌트 테스트(Chromium)
 pnpm typecheck     # 라이브러리 검사 → 빌드(dist) → playground 검사. playground는 dist의 타입을 쓴다
 pnpm build         # 라이브러리 빌드 + playground next build
 pnpm showcase      # showcase (http://localhost:3200)
 pnpm storybook     # storybook (http://localhost:6006)
 pnpm dev           # playground (http://localhost:3100)
 
-pnpm --filter playground exec playwright install chromium webkit
 pnpm e2e                                          # build 후 playground, showcase, storybook e2e
 pnpm build && E2E_MODE=dev pnpm --filter playground e2e   # next dev 대상 (StrictMode)
 ```
