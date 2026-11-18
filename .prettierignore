@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+**/dist
+**/.next
+**/storybook-static
+**/test-results
+**/next-env.d.ts
+*.md

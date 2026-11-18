@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clamp, setCollapsed, setSize, toggleCollapsed } from './model'
+import { clamp, setCollapsed, setSize, toggleCollapsed } from './model.js'
 
 describe('side-panels model', () => {
   it('setSize rounds and keeps collapsed flag', () => {

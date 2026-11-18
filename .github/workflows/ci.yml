@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm --filter playground exec playwright install --with-deps chromium webkit
+      - run: pnpm test
+      - run: pnpm build
+      - name: Package checks (publint, attw)
+        run: pnpm --filter @justwonder/layout lint:package
+      - run: pnpm --filter playground --filter showcase --filter storybook e2e
+      - name: e2e (next dev, StrictMode + dev-only accessible name checks)
+        run: pnpm --filter playground --filter showcase e2e
+        env:
+          E2E_MODE: dev

@@ -11,11 +11,14 @@ function AppShell() {
     <div className="demo-col">
       <div className="demo-bar">GNB</div>
       <div className="demo-fill">
-        <SidePanels.Root ref={workspace} defaultLayout={{ left: { size: 220, collapsed: false }, right: { size: 240, collapsed: false } }}>
-          <SidePanels.Panel side="left" className="side">
+        <SidePanels.Root
+          ref={workspace}
+          defaultLayout={{ left: { size: 220, collapsed: false }, right: { size: 240, collapsed: false } }}
+        >
+          <SidePanels.Panel side="left" className="side" aria-label="탐색">
             <div className="side-inner">탐색</div>
-            <SidePanels.ResizeHandle className="sash" aria-label="탐색 패널 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="left" className="sash" aria-label="탐색 패널 너비" />
           <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 패널 열기" />
           <SidePanels.Main minSize={320}>
             <div className="tiling-wrap">
@@ -27,10 +30,10 @@ function AppShell() {
               />
             </div>
           </SidePanels.Main>
-          <SidePanels.Panel side="right" className="side">
+          <SidePanels.Panel side="right" className="side" aria-label="속성">
             <div className="side-inner">속성</div>
-            <SidePanels.ResizeHandle className="sash" aria-label="속성 패널 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="right" className="sash" aria-label="속성 패널 너비" />
           <SidePanels.HoverTrigger side="right" className="edge-zone" aria-label="속성 패널 열기" />
         </SidePanels.Root>
       </div>

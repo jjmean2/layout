@@ -3,8 +3,7 @@ export type Direction = 'row' | 'column'
 export type Edge = 'left' | 'right' | 'top' | 'bottom'
 
 export type TileNode =
-  | { type: 'split'; direction: Direction; children: TileNode[]; sizes: number[] }
-  | { type: 'pane'; id: PaneId }
+  { type: 'split'; direction: Direction; children: TileNode[]; sizes: number[] } | { type: 'pane'; id: PaneId }
 
 /** px. bounds 박스의 왼쪽 위가 원점이다. */
 export interface Rect {

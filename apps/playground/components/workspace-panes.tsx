@@ -110,11 +110,16 @@ export function Workspace({
     <Tiling.Root layout={layout} onLayoutChange={onLayoutChange} gap={6} floating={floating} data-testid="tiling">
       <Tiling.Panes>
         {(pane) => (
-          <Tiling.Pane className="pane" data-testid={`pane-${pane.id}`}>
+          <Tiling.Pane className="pane" data-testid={`pane-${pane.id}`} aria-label={pane.id}>
             <RenderCounter id={`pane-${pane.id}`} />
             <PaneHeader title={pane.id} />
             <div className="pane-body">{renderBody(pane.id)}</div>
-            <Tiling.ResizeHandle edge="bottom-right" className="grip" data-testid={`resize-${pane.id}`} />
+            <Tiling.ResizeHandle
+              edge="bottom-right"
+              className="grip"
+              data-testid={`resize-${pane.id}`}
+              aria-label={`${pane.id} 크기`}
+            />
           </Tiling.Pane>
         )}
       </Tiling.Panes>

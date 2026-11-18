@@ -6,10 +6,12 @@ export default function RscPage() {
     <div className="app">
       <header className="gnb">RSC</header>
       <SidePanels.Root className="workspace" defaultLayout={{ left: { size: 220, collapsed: false } }}>
-        <SidePanels.Panel side="left" className="side" render={<aside />}>
-          <div className="side-inner" data-testid="rsc-left">서버에서 렌더한 왼쪽 패널</div>
-          <SidePanels.ResizeHandle className="sash" />
+        <SidePanels.Panel side="left" className="side" render={<aside aria-label="탐색" />}>
+          <div className="side-inner" data-testid="rsc-left">
+            서버에서 렌더한 왼쪽 패널
+          </div>
         </SidePanels.Panel>
+        <SidePanels.Separator side="left" className="sash" />
         <SidePanels.Main className="main">
           <div style={{ padding: 16 }} data-testid="rsc-main">
             Main

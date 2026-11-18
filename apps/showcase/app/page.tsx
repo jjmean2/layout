@@ -6,7 +6,11 @@ const EXAMPLES = [
     title: '주문 관리',
     body: 'Tiling. 목록, 상세, 로그, 미리보기를 분할하고 숨기고, 창으로 띄워 사이드 패널 위로 옮긴다.',
   },
-  { href: '/dashboard', title: '대시보드', body: 'Grid. 위젯을 끌어 옮기고 허용된 크기로 조정한다. 레이아웃은 저장된다.' },
+  {
+    href: '/dashboard',
+    title: '대시보드',
+    body: 'Grid. 위젯을 끌어 옮기고 허용된 크기로 조정한다. 레이아웃은 저장된다.',
+  },
   { href: '/mail', title: '메일', body: '셸의 SidePanels 안에 또 다른 SidePanels를 중첩한다.' },
 ]
 

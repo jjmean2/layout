@@ -82,11 +82,23 @@ export function Dashboard() {
         </button>
       </div>
       <div className="fill-body">
-        <Grid.Root className="grid-root" layout={items} onLayoutChange={setItems} cols={COLS} gap={14} aria-label="대시보드 위젯">
+        <Grid.Root className="grid-root" layout={items} onLayoutChange={setItems} cols={COLS} gap={14}>
           {items.map((item) => (
-            <Grid.Item key={item.id} id={item.id} sizes={SIZES[kindOf(item.id)]} className="widget" aria-label={item.id}>
+            <Grid.Item
+              key={item.id}
+              id={item.id}
+              sizes={SIZES[kindOf(item.id)]}
+              className="widget"
+              aria-label={item.id}
+            >
               <div className="widget-head">
-                {item.static ? <span>{title(item.id)} · 고정</span> : <Grid.MoveHandle aria-label={`${title(item.id)} 이동`}>{title(item.id)}</Grid.MoveHandle>}
+                {item.static ? (
+                  <span>{title(item.id)} · 고정</span>
+                ) : (
+                  <Grid.MoveHandle className="widget-grip" aria-label={`${title(item.id)} 이동`}>
+                    {title(item.id)}
+                  </Grid.MoveHandle>
+                )}
                 {item.static ? null : (
                   <button className="pane-act" title="삭제" onClick={() => setItems((l) => removeItem(l, item.id))}>
                     ×
@@ -129,7 +141,7 @@ function WidgetBody({ id }: { id: string }) {
   if (kind === 'chart') {
     const data = [42, 58, 51, 66, 73, 61, 80]
     return (
-      <div className="bars" aria-label="주간 매출 막대 차트">
+      <div className="bars" role="img" aria-label="주간 매출 막대 차트">
         {data.map((v, i) => (
           <span key={i} style={{ height: `${v}%` }} />
         ))}

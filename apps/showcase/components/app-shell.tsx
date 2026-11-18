@@ -65,20 +65,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               ))}
             </div>
-            <SidePanels.ResizeHandle className="sash" aria-label="탐색 패널 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="left" className="sash" aria-label="탐색 패널 너비" />
           <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 패널 열기" />
 
           <SidePanels.Main className="main" minSize={420}>
             {children}
           </SidePanels.Main>
 
-          <SidePanels.Panel side="right" className="side" minSize={240} maxSize={560} render={<aside aria-label="Inspector" />}>
+          <SidePanels.Panel
+            side="right"
+            className="side"
+            minSize={240}
+            maxSize={560}
+            render={<aside aria-label="Inspector" />}
+          >
             <div className="side-inner inspector">
               {inspector ?? <p style={{ color: 'var(--muted)' }}>이 화면에는 표시할 정보가 없습니다.</p>}
             </div>
-            <SidePanels.ResizeHandle className="sash" aria-label="Inspector 너비" />
           </SidePanels.Panel>
+          <SidePanels.Separator side="right" className="sash" aria-label="Inspector 너비" />
           <SidePanels.HoverTrigger side="right" className="edge-zone" aria-label="Inspector 열기" />
         </SidePanels.Root>
       </div>

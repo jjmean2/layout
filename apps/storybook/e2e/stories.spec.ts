@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
@@ -18,7 +19,7 @@ for (const entry of entries) {
   test(`${entry.type} ${entry.id} renders without errors`, async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {
-      if (m.type() === 'error') errors.push(m.text())
+      if (m.type() === 'error' || m.text().includes('[@justwonder/layout]')) errors.push(m.text())
     })
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(`/iframe.html?id=${entry.id}&viewMode=${entry.type === 'docs' ? 'docs' : 'story'}`)
@@ -31,5 +32,15 @@ for (const entry of entries) {
     }
     await page.waitForTimeout(200)
     expect(errors).toEqual([])
+    if (entry.type === 'story') {
+      const result = await new AxeBuilder({ page })
+        .include('#storybook-root')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+        .analyze()
+      // aria-prohibited-attr(역할 없는 요소의 이름)는 axe가 incomplete로 분류하므로 함께 본다
+      const findings = [...result.violations, ...result.incomplete.filter((r) => r.id === 'aria-prohibited-attr')]
+      const violations = findings.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
+      expect(violations, 'axe WCAG 2.2 AA').toEqual([])
+    }
   })
 }

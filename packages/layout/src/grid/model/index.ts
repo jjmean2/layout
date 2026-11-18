@@ -141,9 +141,14 @@ export function findFreeSlot(layout: GridLayout, w: number, h: number, cols: num
   }
 }
 
-export function addItem(layout: GridLayout, item: Omit<GridItemLayout, 'x' | 'y'> & Partial<Pick<GridItemLayout, 'x' | 'y'>>, cols: number): GridLayout {
+export function addItem(
+  layout: GridLayout,
+  item: Omit<GridItemLayout, 'x' | 'y'> & Partial<Pick<GridItemLayout, 'x' | 'y'>>,
+  cols: number,
+): GridLayout {
   if (layout.some((i) => i.id === item.id)) throw new Error(`Grid: item id "${item.id}" already exists`)
-  const slot = item.x !== undefined && item.y !== undefined ? { x: item.x, y: item.y } : findFreeSlot(layout, item.w, item.h, cols)
+  const slot =
+    item.x !== undefined && item.y !== undefined ? { x: item.x, y: item.y } : findFreeSlot(layout, item.w, item.h, cols)
   return [...layout, { ...item, ...slot }]
 }
 
@@ -184,9 +189,19 @@ export function snapSize(w: number, h: number, c: SizeConstraints, cols: number)
 }
 
 /** 허용 크기 목록에서 현재 크기 다음/이전 크기 (키보드 조작용). */
-export function stepSize(w: number, h: number, c: SizeConstraints, cols: number, dw: number, dh: number): [number, number] {
+export function stepSize(
+  w: number,
+  h: number,
+  c: SizeConstraints,
+  cols: number,
+  dw: number,
+  dh: number,
+): [number, number] {
   if (c.sizes && c.sizes.length) {
-    const list = c.sizes.filter((s) => s[0] <= cols).slice().sort((a, b) => a[0] * a[1] - b[0] * b[1] || a[0] - b[0])
+    const list = c.sizes
+      .filter((s) => s[0] <= cols)
+      .slice()
+      .sort((a, b) => a[0] * a[1] - b[0] * b[1] || a[0] - b[0])
     const index = list.findIndex((s) => s[0] === w && s[1] === h)
     const dir = dw + dh > 0 ? 1 : -1
     const next = list[Math.min(list.length - 1, Math.max(0, (index < 0 ? 0 : index) + dir))]!

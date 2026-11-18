@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 declare global {
   interface Window {
@@ -11,11 +11,9 @@ declare global {
 
 let seq = 0
 
-/** 렌더 횟수와 컴포넌트 인스턴스를 window에 기록한다. e2e가 리렌더와 remount를 확인한다. */
+/** commit된 렌더 횟수와 컴포넌트 인스턴스를 window에 기록한다. e2e가 리렌더와 remount를 확인한다. */
 export function RenderCounter({ id }: { id: string }) {
   const [instance] = useState(() => `i${++seq}`)
-  const renders = useRef(0)
-  renders.current++
   useEffect(() => {
     const all = (window.__renders ??= {})
     all[id] = (all[id] ?? 0) + 1

@@ -6,11 +6,11 @@ import { Meta } from '@storybook/addon-docs/blocks'
 
 업무 화면용 headless React 레이아웃 컴포넌트. 영역의 크기, 위치, 인터랙션(드래그, 키보드, ARIA)만 맡고 화면에 보이는 것은 사용하는 쪽이 그린다.
 
-| 경로 | 용도 |
-|---|---|
+| 경로                             | 용도                                                              |
+| -------------------------------- | ----------------------------------------------------------------- |
 | `@justwonder/layout/side-panels` | 좌/우 사이드 패널과 main. resize, 접기, 접힌 상태의 hover overlay |
-| `@justwonder/layout/tiling` | nvim/tmux식 분할, 숨기기, floating 창 |
-| `@justwonder/layout/grid` | 홈 화면 위젯식 셀 그리드 |
+| `@justwonder/layout/tiling`      | nvim/tmux식 분할, 숨기기, floating 창                             |
+| `@justwonder/layout/grid`        | 홈 화면 위젯식 셀 그리드                                          |
 
 ## 공통 규칙
 
@@ -19,6 +19,7 @@ import { Meta } from '@storybook/addon-docs/blocks'
 - **순수 함수.** `toggleCollapsed(layout, 'left')`, `split(layout, …)`, `moveItem(layout, …)`처럼 layout을 받아 새 layout을 돌려준다. Root 밖에서 상태를 바꿀 때 쓴다.
 - **스타일.** 라이브러리는 배치용 inline style만 쓴다. 상태는 `data-state`, `data-placement`, `data-dragging`, `data-resizing` 등으로 노출된다.
 - **크기.** 모든 Root는 부모를 100% 채운다. 부모가 높이를 정해야 한다.
+- **접근성 이름.** 라이브러리는 기본 문구를 갖지 않는다. 패널과 pane에 `aria-label`을 주면 Separator가 그것을 이름으로 쓴다. 손잡이와 HoverTrigger에는 `aria-label`을 준다. 빠뜨리면 개발 모드에서 경고한다.
 - **Next.js.** Server Component에서 `<SidePanels.Root>`를 그대로 쓸 수 있다. Tiling pane 내용은 클라이언트에서만 렌더된다.
 
 ## 예
@@ -30,11 +31,11 @@ import { SidePanels } from '@justwonder/layout/side-panels'
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <SidePanels.Root defaultLayout={{ left: { size: 240, collapsed: false } }}>
-      <SidePanels.Panel side="left" render={<nav />}>
+      <SidePanels.Panel side="left" render={<nav aria-label="탐색" />}>
         <Nav />
-        <SidePanels.ResizeHandle className="sash" aria-label="탐색 패널 너비" />
       </SidePanels.Panel>
-      <SidePanels.HoverTrigger side="left" className="edge-zone" />
+      <SidePanels.Separator side="left" className="sash" />
+      <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 보기" />
       <SidePanels.Main>{children}</SidePanels.Main>
     </SidePanels.Root>
   )

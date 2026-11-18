@@ -22,10 +22,10 @@ export default function NestedPage() {
         </span>
       </header>
       <SidePanels.Root ref={ref} className="workspace" layout={side} onLayoutChange={setSide}>
-        <SidePanels.Panel side="left" className="side">
+        <SidePanels.Panel side="left" className="side" aria-label="탐색">
           <div className="side-inner">탐색</div>
-          <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
+        <SidePanels.Separator side="left" className="sash" />
         <SidePanels.Main className="main">
           <Workspace
             layout={layout}

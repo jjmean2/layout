@@ -7,7 +7,7 @@ import {
   show,
   splitNode,
   usePane,
-  useTiling,
+  useTilingActions,
   type FocusDirection,
   type TilingLayout,
 } from '@justwonder/layout/tiling'
@@ -85,7 +85,8 @@ export function OrderWorkspace() {
             {({ id }) => (
               <Tiling.Pane className="pane" aria-label={TITLES[id]}>
                 <PaneHead title={TITLES[id] ?? id} />
-                <div className="pane-body">
+                {/* 스크롤 영역은 키보드로도 스크롤할 수 있어야 한다 */}
+                <div className="pane-body" tabIndex={0}>
                   <PaneContent id={id} selected={selected} onSelect={setSelected} />
                 </div>
                 <Tiling.ResizeHandle edge="bottom-right" className="grip" aria-label={`${TITLES[id]} 창 크기`} />
@@ -103,7 +104,8 @@ export function OrderWorkspace() {
 
 /** Alt + 방향키로 인접 pane에 포커스를 옮긴다. 키 바인딩은 사용하는 쪽이 정한다. */
 function FocusShortcuts() {
-  const { focusNeighbor } = useTiling()
+  // 액션만 쓰므로 layout을 구독하지 않는다 (드래그 중 리렌더 없음)
+  const { focusNeighbor } = useTilingActions()
   useEffect(() => {
     const keys: Record<string, FocusDirection> = {
       ArrowLeft: 'left',
@@ -131,7 +133,11 @@ function PaneHead({ title }: { title: string }) {
       <Tiling.MoveHandle className="pane-title" aria-label={`${title} 창 이동`}>
         {title}
       </Tiling.MoveHandle>
-      <button className="pane-act" title={floating ? '제자리로' : '창으로 띄우기'} onClick={() => (floating ? pane.dock() : pane.float())}>
+      <button
+        className="pane-act"
+        title={floating ? '제자리로' : '창으로 띄우기'}
+        onClick={() => (floating ? pane.dock() : pane.float())}
+      >
         {floating ? '⇲' : '⧉'}
       </button>
       <button className="pane-act" title="숨기기" onClick={pane.hide}>

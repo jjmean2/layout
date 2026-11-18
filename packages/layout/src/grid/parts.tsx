@@ -11,13 +11,15 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { dataAttr, mergeRefs } from '../internal/merge-props'
-import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store'
-import type { PartProps } from '../internal/types'
-import { useDragGesture } from '../internal/use-drag-gesture'
-import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect'
-import { useLayoutState, type LayoutState } from '../internal/use-layout-state'
-import { useRender } from '../internal/use-render'
+import { dataAttr } from '../internal/merge-props.js'
+import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
+import type { PartProps } from '../internal/types.js'
+import { useDragGesture } from '../internal/use-drag-gesture.js'
+import { useNameCheck } from '../internal/dev-name.js'
+import { useIsoLayoutEffect } from '../internal/use-iso-layout-effect.js'
+import type { LayoutChangeHandler, LayoutController } from '../internal/controller.js'
+import { useLayoutController } from '../internal/use-layout-controller.js'
+import { useRender } from '../internal/use-render.js'
 import {
   addItem as addItemFn,
   moveItem as moveItemFn,
@@ -30,7 +32,7 @@ import {
   type GridLayout,
   type GridOptions,
   type SizeConstraints,
-} from './model'
+} from './model/index.js'
 
 interface Drag {
   id: string
@@ -40,9 +42,14 @@ interface Drag {
   dy: number
 }
 
+interface GridRootOptions extends GridOptions {
+  gap: number
+  rowHeight: number | 'square'
+}
+
 interface GridContextValue {
-  state: LayoutState<GridLayout>
-  options: RefObject<GridOptions & { gap: number; rowHeight: number | 'square' }>
+  layout: LayoutController<GridLayout>
+  options: Store<GridRootOptions>
   drag: Store<Drag | null>
   /** 측정한 셀 너비(px). 측정 전에는 0 */
   cellWidth: RefObject<number>
@@ -69,7 +76,8 @@ function useItemId(part: string) {
 export type RootProps = PartProps<{
   layout?: GridLayout
   defaultLayout?: GridLayout
-  onLayoutChange?: (layout: GridLayout) => void
+  /** 변경이 확정될 때(놓을 때, 키 입력, 액션) 한 번 호출된다. */
+  onLayoutChange?: LayoutChangeHandler<GridLayout>
   /** 열 수 */
   cols: number
   /** 행 높이(px) 또는 'square'(셀 너비와 같게). 기본값 'square' */
@@ -94,26 +102,26 @@ export function Root(props: RootProps) {
     collision = 'push',
     compact = false,
     render,
-    ref,
     children,
-    style: userStyle,
     ...rest
   } = props
-  const state = useLayoutState<GridLayout>({ layout, defaultLayout, fallback: [], onLayoutChange })
+  const controller = useLayoutController<GridLayout>({ layout, defaultLayout, onLayoutChange }, [])
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const options = useRef({ cols, gap, rowHeight, collision, compact })
-  options.current = { cols, gap, rowHeight, collision, compact }
   const cellWidth = useRef(0)
   const [measured, setMeasured] = useState(false)
 
   const [ctx] = useState<GridContextValue>(() => ({
-    state,
-    options,
+    layout: controller,
+    options: createStore<GridRootOptions>({ cols, gap, rowHeight, collision, compact }),
     drag: createStore<Drag | null>(null),
     cellWidth,
     constraints: new Map(),
   }))
-  ctx.state = state
+  // 옵션은 렌더 중이 아니라 layout effect에서 store에 반영한다.
+  useIsoLayoutEffect(() => {
+    const next = { cols, gap, rowHeight, collision, compact }
+    ctx.options.update((prev) => (shallowEqual(prev, next) ? prev : next))
+  }, [ctx, cols, gap, rowHeight, collision, compact])
 
   // 셀 너비를 CSS 변수 하나로만 갱신한다. 컨테이너 resize 중에는 React 렌더가 없다.
   useIsoLayoutEffect(() => {
@@ -122,7 +130,7 @@ export function Root(props: RootProps) {
     let timer: ReturnType<typeof setTimeout> | undefined
     let first = true
     const measure = () => {
-      const { cols: c, gap: g } = options.current
+      const { cols: c, gap: g } = ctx.options.get()
       const width = el.clientWidth
       const cell = Math.max(0, (width - g * (c - 1)) / c)
       if (cell === cellWidth.current) return
@@ -149,7 +157,6 @@ export function Root(props: RootProps) {
   const dragging = useStoreSelector(ctx.drag, (d) => d !== null)
 
   const style: CSSProperties & Record<`--${string}`, string> = {
-    ...(userStyle as CSSProperties),
     '--grid-cols': String(cols),
     '--grid-gap': `${gap}px`,
     '--grid-row-h': rowHeight === 'square' ? 'var(--grid-cell-w)' : `${rowHeight}px`,
@@ -169,12 +176,13 @@ export function Root(props: RootProps) {
     'div',
     render,
     {
-      ref: mergeRefs(rootRef, ref),
+      ref: rootRef,
       'data-dragging': dataAttr(dragging),
       style,
       children,
     },
     rest,
+    { dragging },
   )
   return <GridContext.Provider value={ctx}>{element}</GridContext.Provider>
 }
@@ -199,7 +207,7 @@ function boxStyle(item: Pick<GridItemLayout, 'x' | 'y' | 'w' | 'h'>, dx = 0, dy 
 }
 
 function cellSize(ctx: GridContextValue) {
-  const { rowHeight, gap } = ctx.options.current
+  const { rowHeight, gap } = ctx.options.get()
   const w = ctx.cellWidth.current
   const h = rowHeight === 'square' ? w : rowHeight
   return { stepX: w + gap, stepY: h + gap }
@@ -217,7 +225,7 @@ export type ItemProps = PartProps<
 export function Item(props: ItemProps) {
   const { id, minW, maxW, minH, maxH, sizes, render, children, ...rest } = props
   const ctx = useGridContext('Item')
-  const entry = useStoreSelector(ctx.state.store, (l) => l.find((i) => i.id === id) ?? null, shallowEqual)
+  const entry = useStoreSelector(ctx.layout, (l) => l.find((i) => i.id === id) ?? null, shallowEqual)
   const drag = useStoreSelector(ctx.drag, (d) => (d && d.id === id ? d : null), shallowEqual)
 
   const constraints = useMemo<SizeConstraints>(
@@ -241,6 +249,7 @@ export function Item(props: ItemProps) {
     'div',
     render,
     {
+      role: 'group',
       'data-grid-item': id,
       'data-dragging': dataAttr(drag !== null),
       'data-drag-kind': drag?.kind,
@@ -249,6 +258,7 @@ export function Item(props: ItemProps) {
       children: <ItemContext.Provider value={id}>{children}</ItemContext.Provider>,
     },
     rest,
+    { id, dragging: drag !== null, dragKind: drag?.kind ?? null, static: !!entry?.static },
   )
 }
 
@@ -259,7 +269,7 @@ function useItemDrag(ctx: GridContextValue, id: string, kind: Drag['kind']) {
   return useDragGesture({
     threshold: kind === 'move' ? 3 : 0,
     onStart: () => {
-      const start = ctx.state.committed().find((i) => i.id === id)
+      const start = ctx.layout.getCommitted().find((i) => i.id === id)
       if (!start || start.static || ctx.cellWidth.current <= 0) return false
       last.current = ''
       ctx.drag.set({ id, kind, start, dx: 0, dy: 0 })
@@ -269,8 +279,8 @@ function useItemDrag(ctx: GridContextValue, id: string, kind: Drag['kind']) {
       if (!d) return
       ctx.drag.set({ ...d, dx, dy })
       const { stepX, stepY } = cellSize(ctx)
-      const opts = ctx.options.current
-      const committed = ctx.state.committed()
+      const opts = ctx.options.get()
+      const committed = ctx.layout.getCommitted()
       let next: GridLayout
       let key: string
       if (kind === 'move') {
@@ -280,21 +290,26 @@ function useItemDrag(ctx: GridContextValue, id: string, kind: Drag['kind']) {
         if (key === last.current) return
         next = moveItemFn(committed, id, x, y, opts)
       } else {
-        const [w, h] = snapSize(d.start.w + dx / stepX, d.start.h + dy / stepY, ctx.constraints.get(id) ?? {}, opts.cols)
+        const [w, h] = snapSize(
+          d.start.w + dx / stepX,
+          d.start.h + dy / stepY,
+          ctx.constraints.get(id) ?? {},
+          opts.cols,
+        )
         key = `${w}x${h}`
         if (key === last.current) return
         next = resizeItemFn(committed, id, w, h, opts)
       }
       last.current = key
-      ctx.state.preview(next)
+      ctx.layout.preview(next)
     },
     onEnd: () => {
       ctx.drag.set(null)
-      ctx.state.commit(ctx.state.store.get())
+      ctx.layout.commit(ctx.layout.get(), { reason: 'drag', source: id })
     },
     onCancel: () => {
       ctx.drag.set(null)
-      ctx.state.cancel()
+      ctx.layout.cancel()
     },
   })
 }
@@ -313,28 +328,33 @@ export function MoveHandle(props: MoveHandleProps) {
   const ctx = useGridContext('MoveHandle')
   const id = useItemId('MoveHandle')
   const onPointerDown = useItemDrag(ctx, id, 'move')
+  const moveNameCheck = useNameCheck('Grid.MoveHandle', 'Pass aria-label (e.g. "Move <widget name>").', true)
   const onKeyDown = (event: KeyboardEvent) => {
     const arrow = ARROWS[event.key]
     if (!arrow) return
     event.preventDefault()
-    ctx.state.commit((l) => {
-      const item = l.find((i) => i.id === id)
-      return item ? moveItemFn(l, id, item.x + arrow[0], item.y + arrow[1], ctx.options.current) : l
-    })
+    ctx.layout.commit(
+      (l) => {
+        const item = l.find((i) => i.id === id)
+        return item ? moveItemFn(l, id, item.x + arrow[0], item.y + arrow[1], ctx.options.get()) : l
+      },
+      { reason: 'keyboard', source: id },
+    )
   }
   return useRender(
     'div',
     render,
     {
+      checkRef: moveNameCheck,
+      role: 'button',
       tabIndex: 0,
-      'aria-label': 'Move item',
-      'aria-roledescription': 'move handle',
       onPointerDown,
       onKeyDown,
       style: { touchAction: 'none', cursor: 'grab' } satisfies CSSProperties,
       children,
     },
     rest,
+    {},
   )
 }
 
@@ -346,24 +366,29 @@ export function ResizeHandle(props: ResizeHandleProps) {
   const ctx = useGridContext('ResizeHandle')
   const id = useItemId('ResizeHandle')
   const onPointerDown = useItemDrag(ctx, id, 'resize')
+  const resizeNameCheck = useNameCheck('Grid.ResizeHandle', 'Pass aria-label (e.g. "Resize <widget name>").', false)
   const onKeyDown = (event: KeyboardEvent) => {
     const arrow = ARROWS[event.key]
     if (!arrow) return
     event.preventDefault()
-    ctx.state.commit((l) => {
-      const item = l.find((i) => i.id === id)
-      if (!item) return l
-      const opts = ctx.options.current
-      const [w, h] = stepSize(item.w, item.h, ctx.constraints.get(id) ?? {}, opts.cols, arrow[0], arrow[1])
-      return resizeItemFn(l, id, w, h, opts)
-    })
+    ctx.layout.commit(
+      (l) => {
+        const item = l.find((i) => i.id === id)
+        if (!item) return l
+        const opts = ctx.options.get()
+        const [w, h] = stepSize(item.w, item.h, ctx.constraints.get(id) ?? {}, opts.cols, arrow[0], arrow[1])
+        return resizeItemFn(l, id, w, h, opts)
+      },
+      { reason: 'keyboard', source: id },
+    )
   }
   return useRender(
     'div',
     render,
     {
+      checkRef: resizeNameCheck,
+      role: 'button',
       tabIndex: 0,
-      'aria-label': 'Resize item',
       onPointerDown,
       onKeyDown,
       style: {
@@ -377,6 +402,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
       children,
     },
     rest,
+    {},
   )
 }
 
@@ -390,7 +416,7 @@ export function Placeholder(props: PlaceholderProps) {
   const ctx = useGridContext('Placeholder')
   const id = useStoreSelector(ctx.drag, (d) => d?.id ?? null)
   const kind = useStoreSelector(ctx.drag, (d) => d?.kind ?? null)
-  const target = useStoreSelector(ctx.state.store, (l) => (id ? (l.find((i) => i.id === id) ?? null) : null), shallowEqual)
+  const target = useStoreSelector(ctx.layout, (l) => (id ? (l.find((i) => i.id === id) ?? null) : null), shallowEqual)
   const element = useRender(
     'div',
     render,
@@ -401,6 +427,7 @@ export function Placeholder(props: PlaceholderProps) {
       children,
     },
     rest,
+    { dragKind: kind },
   )
   return target ? element : null
 }
@@ -415,17 +442,37 @@ export interface GridApi {
   removeItem: (id: string) => void
 }
 
-export function useGrid(): GridApi {
-  const ctx = useGridContext('useGrid')
-  const layout = useStoreSelector(ctx.state.store, (l) => l)
-  return useMemo<GridApi>(
+export type GridActions = Omit<GridApi, 'layout'>
+
+/** 액션만 돌려준다. layout을 구독하지 않는다. */
+export function useGridActions(): GridActions {
+  const ctx = useGridContext('useGridActions')
+  return useMemo<GridActions>(
     () => ({
-      layout,
-      moveItem: (id, x, y) => ctx.state.commit((l) => moveItemFn(l, id, x, y, ctx.options.current)),
-      resizeItem: (id, w, h) => ctx.state.commit((l) => resizeItemFn(l, id, w, h, ctx.options.current)),
-      addItem: (item) => ctx.state.commit((l) => addItemFn(l, item, ctx.options.current.cols)),
-      removeItem: (id) => ctx.state.commit((l) => removeItemFn(l, id)),
+      moveItem: (id, x, y) =>
+        ctx.layout.commit((l) => moveItemFn(l, id, x, y, ctx.options.get()), { reason: 'action', source: id }),
+      resizeItem: (id, w, h) =>
+        ctx.layout.commit((l) => resizeItemFn(l, id, w, h, ctx.options.get()), { reason: 'action', source: id }),
+      addItem: (item) =>
+        ctx.layout.commit((l) => addItemFn(l, item, ctx.options.get().cols), { reason: 'action', source: item.id }),
+      removeItem: (id) => ctx.layout.commit((l) => removeItemFn(l, id), { reason: 'action', source: id }),
     }),
-    [ctx, layout],
+    [ctx],
   )
+}
+
+/** layout을 구독한다. selector를 주면 고른 값이 바뀔 때만 리렌더된다. */
+export function useGridLayout<S = GridLayout>(
+  selector: (layout: GridLayout) => S = (l) => l as S,
+  isEqual?: (a: S, b: S) => boolean,
+): S {
+  const ctx = useGridContext('useGridLayout')
+  return useStoreSelector(ctx.layout, selector, isEqual)
+}
+
+/** layout 전체 구독 + 액션. 액션만 필요하면 useGridActions를 쓴다. */
+export function useGrid(): GridApi {
+  const actions = useGridActions()
+  const layout = useGridLayout()
+  return useMemo(() => ({ layout, ...actions }), [layout, actions])
 }

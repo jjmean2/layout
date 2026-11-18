@@ -1,4 +1,4 @@
-import type { Rect } from './types'
+import type { Rect } from './types.js'
 
 export interface BoundsSize {
   width: number
@@ -42,18 +42,16 @@ function clampNum(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), Math.max(min, max))
 }
 
-export type ResizeEdge =
-  | 'top'
-  | 'right'
-  | 'bottom'
-  | 'left'
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right'
+export type ResizeEdge = 'top' | 'right' | 'bottom' | 'left' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 /** edge를 dx, dy만큼 끌었을 때의 rect. 최소 크기를 지킨다. */
-export function resizeRect(start: Rect, edge: ResizeEdge, dx: number, dy: number, minSize: { width: number; height: number }): Rect {
+export function resizeRect(
+  start: Rect,
+  edge: ResizeEdge,
+  dx: number,
+  dy: number,
+  minSize: { width: number; height: number },
+): Rect {
   let { x, y, width, height } = start
   if (edge.includes('right')) width = Math.max(minSize.width, start.width + dx)
   if (edge.includes('left')) {

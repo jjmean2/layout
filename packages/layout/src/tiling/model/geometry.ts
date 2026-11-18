@@ -1,4 +1,4 @@
-import type { Direction, Path, PaneId, TileNode } from './types'
+import type { Direction, Path, PaneId, TileNode } from './types.js'
 
 /** pct% + px 형태의 1차식. CSS calc()로 그대로 쓴다. */
 export interface Lin {

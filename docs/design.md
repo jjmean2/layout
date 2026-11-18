@@ -1,6 +1,6 @@
 # 레이아웃 컴포넌트 설계 및 구현 계획
 
-- 상태: v1 구현 완료 (2026-11-18). 구현 결과와 설계에서 달라진 점은 13장
+- 상태: v1 구현 완료, 리뷰 반영 (2026-11-18). 3장은 리뷰 반영 후 구조를 기준으로 다시 썼다. 반영 과정은 `docs/remediation.md`, v1 구현 결과는 13장
 - 대상: `packages/layout` (`@justwonder/layout`), `apps/playground`
 
 ## 1. 목표
@@ -22,7 +22,7 @@
 
 | 항목 | 나중에 추가할 때 필요한 것 |
 |---|---|
-| floating 창을 가장자리에 overlay로 부착 | 모델의 `floating[]` 항목에 `dock?: { edge, size, reveal }` 필드 추가. hover 동작은 SidePanels가 쓰는 `useHoverReveal`을, 기준 영역은 `bounds`를 그대로 쓴다. 구조 변경 없음 |
+| floating 창을 가장자리에 overlay로 부착 | 모델의 `floating[]` 항목에 `dock?: { edge, size, reveal }` 필드 추가. hover 동작은 SidePanels가 쓰는 `hover-reveal`과 dismiss layer stack을, 기준 영역은 `bounds`를 그대로 쓴다. 구조 변경 없음 |
 | pane을 드래그해 다른 위치에 도킹 (drop 영역 표시) | 계산된 rect 위에 hit-test와 미리보기 추가. v1은 `dock()` 액션만 제공 |
 | pane 안의 탭, 브라우저 팝업 창으로 분리 | 별도 설계 |
 | pane 내용의 서버 렌더 | 5.3 참조 |
@@ -53,33 +53,45 @@
 ```
 layout/
 ├─ packages/
-│  └─ layout/                 @justwonder/layout
+│  └─ layout/                 @justwonder/layout (ESM, NodeNext)
 │     ├─ src/
 │     │  ├─ internal/         비공개 공용 프리미티브 (3.8)
-│     │  ├─ side-panels/      model.ts · store.ts · parts.tsx · index.ts
-│     │  ├─ tiling/           model/ · store.ts · pane-host.ts · parts.tsx · index.ts
-│     │  └─ grid/             model/ · store.ts · parts.tsx · index.ts
-│     └─ package.json         exports: ./side-panels, ./tiling, ./grid
+│     │  ├─ side-panels/      model.ts · parts.tsx · index.ts
+│     │  ├─ tiling/           model/ · pane-host.ts · parts.tsx · index.ts
+│     │  └─ grid/             model/ · parts.tsx · index.ts
+│     ├─ scripts/check-dist.mjs   빌드 후 검사 (directive 위치, Node import)
+│     └─ package.json         exports: ./side-panels, ./tiling, ./grid, ./package.json
 └─ apps/
-   └─ playground/             Next.js App Router. 데모, SSR 검증, e2e 대상을 겸한다
+   ├─ showcase/               이 레이아웃으로 만든 예제 앱
+   ├─ storybook/              part별 story, axe 검사
+   └─ playground/             e2e fixture (SSR, StrictMode, 컨테이너 탈출, 중첩)
 ```
-
-각 레이아웃 폴더는 같은 세 층으로 나눈다.
 
 | 층 | 내용 | React 의존 |
 |---|---|---|
 | `model` | 타입, 레이아웃 변환 함수, 기하 계산, 제약 계산 | 없음 |
-| `store` | 확정된 layout과 드래그 중 draft를 보관하고 구독을 제공 | 없음 |
-| `parts` | Root(Provider)와 part 컴포넌트, hooks | 있음 |
+| `internal/controller.ts` | Root 하나의 layout 상태(committed, draft)와 controlled 조정 | 없음 |
+| `parts` | Root(controller 소유)와 part 컴포넌트, hooks. `"use client"` | 있음 |
+| `index` | parts를 namespace로 다시 내보내고 model 함수를 내보내는 서버 모듈 | — |
 
 ### 3.2 공개 API 규약
 
 세 컴포넌트가 같은 규칙을 따른다.
 
-- **Parts.** `Xxx.Root`가 상태를 소유하고, 나머지 part는 각각 DOM 요소 하나를 렌더한다. 기본 요소는 `div`이고 `render` prop으로 바꾼다(`render={<aside />}`). `className`, `style`, `ref`, 나머지 DOM props는 그대로 전달한다.
-- **상태 props.** `defaultLayout`(uncontrolled) 또는 `layout` + `onLayoutChange`(controlled). `onLayoutChange`는 변경이 확정될 때만 호출된다.
-- **Hooks.** `useSidePanels()`, `useTiling()`, `usePane()`, `useGrid()`가 현재 layout과 액션을 준다. Root 아래 어디서든 쓸 수 있다.
-- **순수 함수.** `toggleCollapsed(layout, 'left')`, `split(layout, …)`처럼 layout을 받아 새 layout을 돌려주는 함수를 export한다. Root 바깥(예: GNB의 버튼)에서는 controlled 상태에 이 함수를 적용한다.
+- **Parts.** `Xxx.Root`가 상태를 소유하고, 나머지 part는 각각 DOM 요소 하나를 렌더한다.
+  - `render`: 요소(`render={<aside />}`) 또는 `(props, state) => 요소` 함수
+  - `className`, `style`: 값 또는 part 상태를 받는 함수
+  - 병합: 사용자 값이 이긴다. 단 라이브러리가 정한 배치 style 키(position, 크기, 위치, transform 등)는 라이브러리 값을 유지한다(`cursor`, `boxSizing`은 덮어쓸 수 있다). 이벤트는 사용자 핸들러가 먼저 실행되고, `preventDefault`하면 라이브러리 핸들러는 건너뛴다.
+- **상태 props.** `defaultLayout`(uncontrolled) 또는 `layout` + `onLayoutChange`(controlled).
+  - `onLayoutChange(layout, details)`는 변경이 확정될 때(놓을 때, 키 입력, 액션) 한 번 호출된다. `details.reason`은 `'drag' | 'keyboard' | 'action'`, `details.source`는 변경을 일으킨 part다.
+  - controlled 부모가 값을 받지 않으면 다음 렌더에서 원래 값으로 돌아가고, 다른 값을 주면 그 값을 채택한다.
+- **Hooks.** 레이아웃마다 세 가지다.
+  - `useXxxActions()`: 안정적인 액션. 구독하지 않는다.
+  - `useXxxLayout(selector?, isEqual?)`: 고른 값만 구독한다.
+  - `useXxx()`: 둘을 합친 편의 hook. 드래그 중에도 매 프레임 리렌더된다.
+  - Tiling은 추가로 `usePane()`(현재 pane의 placement와 포커스만 구독)이 있다.
+- **순수 함수.** `toggleCollapsed(layout, 'left')`, `split(layout, …)`처럼 layout을 받아 새 layout을 돌려주는 함수를 export한다. Root 바깥(예: GNB의 버튼)에서는 controlled 상태에 이 함수를 적용한다. entry가 서버 모듈이라 Server Component에서도 쓸 수 있다.
+- **접근성 이름.** 라이브러리는 문구를 갖지 않는다. Separator는 기본 패널(pane)을 `aria-labelledby`로 가리키므로 패널과 pane에 `aria-label`을 준다. 손잡이와 HoverTrigger는 `aria-label`을 받는다. 빠지면 개발 모드에서 한 번 경고한다.
 
 ### 3.3 스타일 계약
 
@@ -103,11 +115,12 @@ pointer 놓음 → draft를 확정 → onLayoutChange(next) 한 번
 
 성능 규칙:
 
-1. **레이아웃 변경이 사용자 콘텐츠를 리렌더하지 않는다.** part는 `useSyncExternalStore`로 자기 값만 구독한다. 목록을 렌더하는 컴포넌트(`Tiling.Panes`)는 pane id 집합이 바뀔 때만 리렌더한다.
-2. **컨테이너 resize는 CSS가 처리한다.** SidePanels와 Tiling은 React 렌더가 없다. Grid는 ResizeObserver가 CSS 변수 하나만 갱신한다.
-3. **DOM 순서를 바꾸지 않는다.** 형제 순서를 바꾸면 브라우저가 노드를 다시 붙이면서 iframe이 재로드된다. pane은 추가된 순서대로 유지한다.
-4. controlled 모드에서는 확정될 때마다 부모가 리렌더된다. 드래그 한 번에 한 번이다.
-5. 결과가 이전 layout과 같으면 확정하지 않는다. 예를 들어 이미 맨 앞에 있는 floating 창을 눌러도 `onLayoutChange`가 호출되지 않는다.
+1. **레이아웃 변경이 사용자 콘텐츠를 리렌더하지 않는다.** part는 `useSyncExternalStoreWithSelector`로 자기 값만 구독한다. `Tiling.Panes`는 host 집합이 바뀔 때만 리렌더한다. 액션만 필요한 사용자 컴포넌트는 `useXxxActions()`를 쓴다.
+2. **렌더는 순수하다.** 렌더 중에 ref를 읽거나 쓰지 않고, DOM을 만들거나 옮기지 않는다. `eslint-plugin-react-hooks`(compiler 규칙 포함)가 CI에서 0건을 강제한다.
+3. **컨테이너 resize는 CSS가 처리한다.** SidePanels와 Tiling은 React 렌더가 없다. Grid는 ResizeObserver가 CSS 변수 하나만 갱신한다.
+4. **DOM 순서를 바꾸지 않는다.** 형제 순서를 바꾸면 브라우저가 노드를 다시 붙이면서 iframe이 재로드된다. pane은 추가된 순서대로 유지한다.
+5. controlled 모드에서는 확정될 때마다 부모가 리렌더된다. 드래그 한 번에 한 번이다.
+6. 결과가 이전 layout과 같으면 확정하지 않는다. 예를 들어 이미 맨 앞에 있는 floating 창을 눌러도 `onLayoutChange`가 호출되지 않는다.
 
 ### 3.5 SSR 규칙
 
@@ -140,27 +153,30 @@ pointer 놓음 → draft를 확정 → onLayoutChange(next) 한 번
 
 ### 3.7 접근성 기준
 
-handle 프리미티브에 처음부터 넣는다. 단계별 완료 기준에 포함한다(8장).
-
 | 대상 | 기준 |
 |---|---|
-| resize handle, separator | WAI-ARIA APG의 Window Splitter 패턴. 포커스 가능한 `role="separator"`, 방향키로 조정, End로 최대 크기. 여기에 `aria-orientation`, `aria-valuenow/min/max`, `aria-controls`, Home(최소 크기), Enter(접기 전환)를 더한다 |
-| 이동/크기 handle (floating 창, Grid 아이템) | 포커스 가능. 방향키로 한 단계씩 이동, 조정. Esc로 드래그 취소 |
-| hover overlay | WCAG 1.4.13. 트리거는 포커스 가능하고 Enter로도 열린다. 포인터가 패널 위로 옮겨 가도 닫히지 않는다. Esc로 닫고 포커스를 트리거로 되돌린다 |
-| 접힌 패널, 숨긴 pane | `inert`를 적용해 포커스가 들어가지 않게 한다 |
-| 드래그 대안 | 모든 조작은 액션 함수로도 가능하다. 사용자가 버튼으로 연결할 수 있다(WCAG 2.5.7) |
+| Separator (SidePanels, Tiling) | WAI-ARIA APG Window Splitter. 포커스 가능한 `role="separator"`, 방향키, Enter(접기 전환, SidePanels), Home/End. `aria-controls`와 `aria-labelledby`는 기본 패널(pane). 값: SidePanels는 패널 너비 px(최소 0 = 접힘, 최대 = maxSize 또는 측정한 가용 너비, 측정 전에는 현재 너비)와 `aria-valuetext`, Tiling은 두 pane 비율 0~100 |
+| 이동/크기 손잡이 (floating 창, Grid 아이템) | `role="button"`, 포커스 가능, 방향키로 한 단계씩, Esc로 드래그 취소. APG 패턴이 없어 선례를 따른다 |
+| Tiling pane | tiled는 `role="group"`, floating은 `role="dialog"` + `aria-modal="false"` |
+| hover overlay | WCAG 1.4.13. HoverTrigger는 `<button>`(클릭, 탭, 스크린 리더로 토글)이고 tab 순서에서는 빠진다. 키보드 사용자는 Separator의 Enter로 펼친다. 포인터가 패널로 옮겨 가도 닫히지 않는다 |
+| 닫기 | 열린 overlay는 문서 수준 layer stack에 들어간다. Escape는 맨 위 레이어만 닫고, 이미 처리된 이벤트(다른 라이브러리 레이어)와 IME 조합 중에는 무시한다 |
+| 접힌 패널, 숨긴 pane | `inert`. Separator는 패널 밖에 있어 접혀도 포커스가 남는다 |
+| 드래그 대안 | 모든 조작은 액션 함수로도 가능하다(WCAG 2.5.7) |
+| 검증 | storybook e2e가 모든 story에 axe(WCAG 2.2 AA 태그)를 돌린다. Separator 이름 누락은 axe가 잡지 않으므로 개발 모드 검사와 dev e2e가 잡는다 |
 
 ### 3.8 내부 프리미티브 (`internal/`)
 
 | 모듈 | 역할 |
 |---|---|
-| `createStore`, `useStoreSelector` | 구독 store와 선택 구독 |
-| `useLayoutState` | controlled/uncontrolled 통합, draft와 확정 구분 |
-| `useDragGesture` | pointer capture, 임계값, rAF 묶음, Esc 취소, 키보드 단계 조작, 안쪽 handle 우선 표시 |
-| `useHoverReveal` | 열기/닫기 지연, Esc, focus-within 유지 |
-| `useElementSize` | ResizeObserver |
-| `useRender` | `render` prop 처리, props와 ref 병합 |
-| `floatingLayer` | 문서당 하나의 floating 레이어와 z 카운터 |
+| `controller.ts`, `use-layout-controller.ts` | Root의 layout 상태 소유, controlled 조정, `onLayoutChange(details)` |
+| `store.ts` | 작은 구독 store와 `useStoreSelector`(`useSyncExternalStoreWithSelector` 래퍼) |
+| `use-drag-gesture.ts` | pointer capture, 임계값, rAF 묶음, 놓을 때 마지막 이동 반영, Esc 취소, 안쪽 handle 우선 |
+| `use-latest.ts` | 이벤트 핸들러가 읽을 최신 값 (layout effect에서 갱신) |
+| `use-render.tsx`, `merge-props.ts`, `use-merged-refs.ts` | part 렌더, props 병합, ref 병합(메모이즈, cleanup), lazy 요소 풀기(`Children.toArray`) |
+| `hover-reveal.ts` | hover 열기/닫기 지연 |
+| `dismiss-layers.ts` | Escape 닫기 layer stack |
+| `dev-name.ts` | 개발 모드 접근성 이름 검사 |
+| `floating-layer.ts`, `move-node.ts` | 페이지 수준 floating 레이어, `moveBefore` 우선 노드 이동 |
 
 ## 4. SidePanels
 
@@ -174,9 +190,9 @@ type SidePanelsLayout = { left?: SideLayout; right?: SideLayout }
 overlay로 열려 있는지는 저장하지 않는 일시 상태다. 화면 상태는 `data-state`로 나타난다.
 
 ```
-expanded ──collapse──▶ collapsed ──트리거 hover 또는 포커스 (openDelay)──▶ overlay
+expanded ──collapse──▶ collapsed ──트리거나 접힌 Separator hover (openDelay), 트리거 클릭──▶ overlay
     ▲                      ▲                                              │
-    └───────expand─────────┴────── 포인터 이탈 (closeDelay), Esc ──────────┘
+    └───────expand─────────┴────── 포인터 이탈 (closeDelay), Esc (맨 위 레이어일 때), 클릭 ──┘
 ```
 
 ### 4.2 Parts
@@ -186,8 +202,8 @@ expanded ──collapse──▶ collapsed ──트리거 hover 또는 포커�
 | `Root` | flex 컨테이너, 상태 소유 | `layout`, `defaultLayout`, `onLayoutChange` |
 | `Panel` | 사이드 영역 | `side`, `minSize`, `maxSize`, `hoverOverlay`(`false` 또는 `{ openDelay, closeDelay }`) |
 | `Main` | 중앙 영역 | `minSize` |
-| `ResizeHandle` | 패널 경계 손잡이. `Panel`의 자식으로 둔다 | |
-| `HoverTrigger` | 접힌 상태에서 overlay를 여는 영역. 위치와 모양은 사용자가 정한다 | `side` |
+| `Separator` | 패널과 Main의 경계 (window splitter). **Root의 직계 자식**으로 둔다. 접히면 Root 가장자리에 남는다. 최소 너비의 절반보다 좁게 끌면 접히고, 접힌 상태에서 끌어 내면 펼쳐진다 | `side`, `step` |
+| `HoverTrigger` | 접힌 상태에서 overlay를 여는 `<button>`. 위치와 모양은 사용자가 정한다 | `side` |
 
 ### 4.3 배치
 
@@ -199,7 +215,7 @@ expanded ──collapse──▶ collapsed ──트리거 hover 또는 포커�
 
 - 모두 CSS로 표현되므로 측정이 필요 없다.
 - 접힘을 `display: none`이 아니라 너비 0으로 표현한다. 사용자가 `transition: width`를 걸 수 있다.
-- `ResizeHandle`이 Panel 안에 있어서 접히면 함께 사라지고 overlay 상태에서도 따라온다.
+- `Separator`는 Panel 밖(Root 직계)에 있어 접혀도 사라지지 않는다. 펼친 상태에서는 패널 경계 가운데, 접힌 상태에서는 Root 가장자리에 놓인다. overlay 상태에서는 가장자리에 남는다(overlay는 크기 조정 대상이 아니다).
 - overlay는 SidePanels Root 안에 그려진다. GNB가 Root 밖에 있으면 GNB를 덮지 않는다.
 
 ## 5. Tiling
@@ -317,8 +333,10 @@ floating?: {
 | `MoveHandle`, `ResizeHandle` | floating 창 이동, 크기 조정 | `edge` |
 | `Separators`, `Separator` | 분할 경계 | |
 
-- `useTiling()`: layout, 변환 액션, `focusNeighbor(direction)`.
+- `useTilingActions()`: 변환 액션과 `focusNeighbor(direction)`. 구독하지 않는다.
+- `useTilingLayout(selector?)`: layout 선택 구독. `useTiling()`은 둘을 합친 편의 hook.
 - `usePane()`: 현재 pane의 id, placement, 포커스 여부, 그 pane에 대한 액션.
+- pane의 DOM id는 사용자 pane id를 escape해서 만든다(공백 등이 id 목록을 깨지 않도록).
 - 단축키는 제공하지 않는다. 사용자가 액션에 연결한다.
 - 숨긴 pane은 기본적으로 mount를 유지한다.
 
@@ -387,20 +405,20 @@ function AppShell() {
 
       <SidePanels.Root ref={workspaceRef} layout={side} onLayoutChange={setSide}
                        className="workspace">   {/* flex: 1; min-height: 0 */}
-        <SidePanels.Panel side="left" minSize={200} maxSize={480} render={<aside />}>
+        <SidePanels.Panel side="left" minSize={200} maxSize={480} render={<aside aria-label="탐색" />}>
           <Nav />
-          <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
-        <SidePanels.HoverTrigger side="left" className="edge-zone" />
+        <SidePanels.Separator side="left" className="sash" />
+        <SidePanels.HoverTrigger side="left" className="edge-zone" aria-label="탐색 보기" />
 
         <SidePanels.Main>
           <Workspace floatingBounds={workspaceRef} />
         </SidePanels.Main>
 
-        <SidePanels.Panel side="right" hoverOverlay={false}>
+        <SidePanels.Panel side="right" hoverOverlay={false} aria-label="속성">
           <Inspector />
-          <SidePanels.ResizeHandle className="sash" />
         </SidePanels.Panel>
+        <SidePanels.Separator side="right" className="sash" />
       </SidePanels.Root>
     </div>
   )
@@ -414,10 +432,10 @@ function Workspace({ floatingBounds }: { floatingBounds: RefObject<HTMLElement |
                  floating={{ bounds: floatingBounds }}>
       <Tiling.Panes>
         {(pane) => (
-          <Tiling.Pane className="pane">
+          <Tiling.Pane className="pane" aria-label={titleOf(pane.id)}>
             <PaneHeader />   {/* usePane()으로 float, dock, hide, close 호출. Tiling.MoveHandle 포함 */}
             {pane.id === 'dashboard' ? <Dashboard /> : <PaneBody id={pane.id} />}
-            <Tiling.ResizeHandle edge="bottom-right" className="grip" />
+            <Tiling.ResizeHandle edge="bottom-right" className="grip" aria-label={`${titleOf(pane.id)} 크기`} />
           </Tiling.Pane>
         )}
       </Tiling.Panes>
@@ -435,9 +453,9 @@ function Dashboard() {
     <Grid.Root layout={items} onLayoutChange={setItems} cols={8} gap={12}>
       {items.map((item) => (
         <Grid.Item key={item.id} id={item.id} sizes={[[2, 2], [4, 2], [4, 4]]} className="widget">
-          <Grid.MoveHandle className="grip" />
+          <Grid.MoveHandle className="grip" aria-label={`${item.id} 이동`} />
           <Widget id={item.id} />
-          <Grid.ResizeHandle className="corner" />
+          <Grid.ResizeHandle className="corner" aria-label={`${item.id} 크기`} />
         </Grid.Item>
       ))}
       <Grid.Placeholder className="drop-target" />

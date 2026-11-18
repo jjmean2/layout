@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createStore, deepEqual, shallowEqual } from './store'
+import { createStore, deepEqual, shallowEqual } from './store.js'
 
 describe('store', () => {
   it('notifies only on change', () => {

@@ -2,7 +2,13 @@ import { center, drag, expect, renders, settledRenders, test } from './fixtures'
 import type { Page } from '@playwright/test'
 
 const items = async (page: Page) =>
-  JSON.parse((await page.getByTestId('grid-json').textContent())!) as Array<{ id: string; x: number; y: number; w: number; h: number }>
+  JSON.parse((await page.getByTestId('grid-json').textContent())!) as Array<{
+    id: string
+    x: number
+    y: number
+    w: number
+    h: number
+  }>
 const item = async (page: Page, id: string) => (await items(page)).find((i) => i.id === id)!
 
 test.describe('Grid', () => {

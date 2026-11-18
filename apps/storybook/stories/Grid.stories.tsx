@@ -30,14 +30,21 @@ function Demo(args: Args) {
         gap={args.gap}
         collision={args.collision}
         compact={args.compact}
-        aria-label="위젯"
       >
         {LAYOUT.map((item) => (
           <Grid.Item
             key={item.id}
             id={item.id}
             className="widget"
-            sizes={args.presets ? [[2, 1], [2, 2], [4, 2]] : undefined}
+            sizes={
+              args.presets
+                ? [
+                    [2, 1],
+                    [2, 2],
+                    [4, 2],
+                  ]
+                : undefined
+            }
             maxW={args.presets ? undefined : 4}
           >
             {item.static ? (

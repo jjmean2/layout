@@ -1,9 +1,11 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
 function trackErrors(page: Page) {
   const errors: string[] = []
   page.on('console', (m) => {
-    if (m.type() === 'error' || /hydrat/i.test(m.text())) errors.push(m.text())
+    if (m.type() === 'error' || /hydrat/i.test(m.text()) || m.text().includes('[@justwonder/layout]'))
+      errors.push(m.text())
   })
   page.on('pageerror', (e) => errors.push(e.message))
   return errors
@@ -16,6 +18,15 @@ for (const route of ['/', '/workspace', '/dashboard', '/mail']) {
     await expect(page.locator('main, [data-main]').first()).toBeVisible()
     await page.waitForTimeout(300)
     expect(errors).toEqual([])
+    const result = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze()
+    // aria-prohibited-attr(역할 없는 요소의 이름)는 axe가 incomplete로 분류하므로 함께 본다
+    const findings = [...result.violations, ...result.incomplete.filter((r) => r.id === 'aria-prohibited-attr')]
+    expect(
+      findings.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+      'axe WCAG 2.2 AA',
+    ).toEqual([])
   })
 }
 

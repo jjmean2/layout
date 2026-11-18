@@ -54,7 +54,9 @@ test.describe('Tiling', () => {
     await page.mouse.move(sep.x, sep.y)
     await page.mouse.down()
     await page.mouse.move(sep.x - 100, sep.y, { steps: 10 })
-    await expect.poll(async () => Math.round((await paneBox(page, 'editor')).width)).toBe(Math.round(before.width - 100))
+    await expect
+      .poll(async () => Math.round((await paneBox(page, 'editor')).width))
+      .toBe(Math.round(before.width - 100))
     expect(await renders(page, 'pane-editor')).toBe(r0)
     await page.mouse.up()
 
@@ -123,7 +125,9 @@ test.describe('Tiling', () => {
     await expect.poll(() => iframeMarker(page, 'frame')).toBe(null)
   })
 
-  test('floating window moves over side panels but stays below the GNB (bounds = SidePanels Root)', async ({ page }) => {
+  test('floating window moves over side panels but stays below the GNB (bounds = SidePanels Root)', async ({
+    page,
+  }) => {
     await page.goto('/tiling')
     await page.getByTestId('float-editor').dispatchEvent('click')
     const handle = await center(page, '[data-testid=move-editor]')
@@ -162,7 +166,9 @@ test.describe('Tiling', () => {
     const handle = await center(page, '[data-testid=move-editor]')
     await drag(page, handle, { x: 300, y: 60 }, 10)
     await page.getByTestId('popup-open-editor').click()
-    const hit = await page.evaluate(() => document.elementFromPoint(20, 20)?.closest('[data-testid]')?.getAttribute('data-testid'))
+    const hit = await page.evaluate(() =>
+      document.elementFromPoint(20, 20)?.closest('[data-testid]')?.getAttribute('data-testid'),
+    )
     expect(hit).toBe('popup-editor')
   })
 

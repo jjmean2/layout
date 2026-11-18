@@ -28,8 +28,15 @@ export function Mail() {
   const mail = MAILS[selected]!
   return (
     <SidePanels.Root defaultLayout={{ left: { size: 300, collapsed: false }, right: { size: 260, collapsed: true } }}>
-      <SidePanels.Panel side="left" className="side" minSize={220} maxSize={480} data-testid="mail-list">
-        <ul className="side-inner mail-list" role="listbox" aria-label="받은 메일">
+      <SidePanels.Panel
+        side="left"
+        className="side"
+        minSize={220}
+        maxSize={480}
+        data-testid="mail-list"
+        aria-label="받은 메일"
+      >
+        <ul className="side-inner mail-list" role="listbox" aria-label="받은 메일" tabIndex={0}>
           {MAILS.map((m) => (
             <li key={m.id} role="option" aria-selected={m.id === selected} onClick={() => setSelected(m.id)}>
               {m.subject}
@@ -39,8 +46,8 @@ export function Mail() {
             </li>
           ))}
         </ul>
-        <SidePanels.ResizeHandle className="sash" aria-label="메일 목록 너비" data-testid="mail-handle" />
       </SidePanels.Panel>
+      <SidePanels.Separator side="left" className="sash" aria-label="메일 목록 너비" data-testid="mail-handle" />
       <SidePanels.Main className="main" minSize={320}>
         <article className="reader">
           <h1 style={{ marginTop: 0 }}>{mail.subject}</h1>
@@ -50,14 +57,14 @@ export function Mail() {
           <p>오른쪽 가장자리에 마우스를 올리면 첨부 파일 패널이 overlay로 나타난다.</p>
         </article>
       </SidePanels.Main>
-      <SidePanels.Panel side="right" className="side" minSize={200}>
+      <SidePanels.Panel side="right" className="side" minSize={200} aria-label="첨부 파일">
         <div className="side-inner inspector">
           <h2>첨부 파일</h2>
           <p>발주서_2411.xlsx</p>
           <p>견적서.pdf</p>
         </div>
-        <SidePanels.ResizeHandle className="sash" aria-label="첨부 패널 너비" />
       </SidePanels.Panel>
+      <SidePanels.Separator side="right" className="sash" aria-label="첨부 패널 너비" />
       <SidePanels.HoverTrigger side="right" className="edge-zone" aria-label="첨부 파일 열기" />
     </SidePanels.Root>
   )

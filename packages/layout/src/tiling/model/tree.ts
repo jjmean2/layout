@@ -1,4 +1,4 @@
-import type { Direction, Edge, Path, PaneId, RestoreHint, TileNode } from './types'
+import type { Direction, Edge, Path, PaneId, RestoreHint, TileNode } from './types.js'
 
 export function pane(id: PaneId): TileNode {
   return { type: 'pane', id }
@@ -178,7 +178,11 @@ function clampRatio(r: number): number {
 }
 
 /** split 노드들을 경로와 함께 순회한다. */
-export function forEachSplit(node: TileNode | null, fn: (split: Extract<TileNode, { type: 'split' }>, path: Path) => void, path: Path = []) {
+export function forEachSplit(
+  node: TileNode | null,
+  fn: (split: Extract<TileNode, { type: 'split' }>, path: Path) => void,
+  path: Path = [],
+) {
   if (!node || node.type !== 'split') return
   fn(node, path)
   node.children.forEach((child, i) => forEachSplit(child, fn, [...path, i]))

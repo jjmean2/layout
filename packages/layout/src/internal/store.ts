@@ -1,8 +1,8 @@
-import { useCallback, useRef, useSyncExternalStore } from 'react'
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector'
 
 export type Listener = () => void
 
-export interface Store<T> {
+export interface Store<T> extends Readable<T> {
   get(): T
   set(next: T): void
   update(fn: (prev: T) => T): void
@@ -29,37 +29,22 @@ export function createStore<T>(initial: T): Store<T> {
   }
 }
 
+/** 구독 가능한 값. store와 controller가 구현한다. */
+export interface Readable<T> {
+  get(): T
+  subscribe(listener: Listener): () => void
+}
+
 /**
- * store에서 selector가 고른 값만 구독한다. 고른 값이 isEqual로 같으면 리렌더하지 않는다.
- * store의 초기값은 props에서 결정되므로 서버와 클라이언트 첫 렌더가 같다.
+ * readable에서 selector가 고른 값만 구독한다. 고른 값이 isEqual로 같으면 리렌더하지 않는다.
+ * React 팀의 useSyncExternalStoreWithSelector를 쓴다. 서버 snapshot은 클라이언트 첫 렌더와 같은 값이다.
  */
 export function useStoreSelector<T, S>(
-  store: Store<T>,
+  readable: Readable<T>,
   selector: (state: T) => S,
   isEqual: (a: S, b: S) => boolean = Object.is,
 ): S {
-  const cache = useRef<{ state: T; selector: (state: T) => S; selected: S } | null>(null)
-  const selectorRef = useRef(selector)
-  selectorRef.current = selector
-  const isEqualRef = useRef(isEqual)
-  isEqualRef.current = isEqual
-
-  const getSnapshot = useCallback(() => {
-    const state = store.get()
-    const selector = selectorRef.current
-    const prev = cache.current
-    // selector는 렌더마다 새 closure일 수 있고, closure가 잡은 값이 바뀌었을 수 있으므로 함께 비교한다.
-    if (prev && Object.is(prev.state, state) && prev.selector === selector) return prev.selected
-    const selected = selector(state)
-    if (prev && isEqualRef.current(prev.selected, selected)) {
-      cache.current = { state, selector, selected: prev.selected }
-      return prev.selected
-    }
-    cache.current = { state, selector, selected }
-    return selected
-  }, [store])
-
-  return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot)
+  return useSyncExternalStoreWithSelector(readable.subscribe, readable.get, readable.get, selector, isEqual)
 }
 
 export function shallowEqual<T>(a: T, b: T): boolean {

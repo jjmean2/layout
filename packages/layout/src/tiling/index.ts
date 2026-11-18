@@ -1,5 +1,5 @@
-export * as Tiling from './parts'
-export { usePane, useTiling } from './parts'
+export * as Tiling from './parts.js'
+export { usePane, useTiling, useTilingActions, useTilingLayout } from './parts.js'
 export type {
   FloatingBounds,
   FloatingOptions,
@@ -13,8 +13,9 @@ export type {
   SeparatorInfo,
   SeparatorProps as TilingSeparatorProps,
   SeparatorsProps as TilingSeparatorsProps,
+  TilingActions,
   TilingApi,
-} from './parts'
+} from './parts.js'
 export {
   allPaneIds,
   bringToFront,
@@ -35,7 +36,7 @@ export {
   splitNode,
   swap,
   validate,
-} from './model'
+} from './model/index.js'
 export type {
   Direction,
   Edge,
@@ -51,4 +52,5 @@ export type {
   SplitOptions,
   TileNode,
   TilingLayout,
-} from './model'
+} from './model/index.js'
+export type { ChangeDetails, ChangeReason, LayoutChangeHandler } from '../internal/controller.js'

@@ -4,7 +4,13 @@ import { useState } from 'react'
 import { TilingDemo } from './fixtures'
 
 const basic = () =>
-  createLayout(splitNode('row', [pane('editor'), splitNode('column', [pane('preview'), pane('terminal')], [0.6, 0.4])], [0.55, 0.45]))
+  createLayout(
+    splitNode(
+      'row',
+      [pane('editor'), splitNode('column', [pane('preview'), pane('terminal')], [0.6, 0.4])],
+      [0.55, 0.45],
+    ),
+  )
 
 const meta = {
   title: 'Layouts/Tiling',
@@ -56,23 +62,23 @@ export const FloatingInViewport: Story = {
 }
 
 /** 숨긴 pane은 mount 상태를 유지하고, 원래 자리로 돌아온다 */
-export const HiddenPanes: Story = {
-  render: (args) => {
-    const [layout, setLayout] = useState<TilingLayout>(() => createLayout(basic().root, { hidden: [{ id: 'notes' }] }))
-    return (
-      <div className="demo-col">
-        <div className="demo-bar">
-          {layout.hidden.length === 0 ? <span>pane 헤더의 hide로 숨겨 보라</span> : null}
-          {layout.hidden.map((h) => (
-            <button key={h.id} onClick={() => setLayout((l) => show(l, h.id))}>
-              {h.id} 보이기
-            </button>
-          ))}
-        </div>
-        <div className="demo-fill" style={{ padding: 8 }}>
-          <TilingDemo {...args} layout={layout} onLayoutChange={setLayout} />
-        </div>
+function HiddenPanesDemo(args: Parameters<typeof TilingDemo>[0]) {
+  const [layout, setLayout] = useState<TilingLayout>(() => createLayout(basic().root, { hidden: [{ id: 'notes' }] }))
+  return (
+    <div className="demo-col">
+      <div className="demo-bar">
+        {layout.hidden.length === 0 ? <span>pane 헤더의 hide로 숨겨 보라</span> : null}
+        {layout.hidden.map((h) => (
+          <button key={h.id} onClick={() => setLayout((l) => show(l, h.id))}>
+            {h.id} 보이기
+          </button>
+        ))}
       </div>
-    )
-  },
+      <div className="demo-fill" style={{ padding: 8 }}>
+        <TilingDemo {...args} layout={layout} onLayoutChange={setLayout} />
+      </div>
+    </div>
+  )
 }
+
+export const HiddenPanes: Story = { render: (args) => <HiddenPanesDemo {...args} /> }
