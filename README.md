@@ -13,6 +13,7 @@
 | 앱 | 용도 |
 |---|---|
 | `apps/showcase` | 이 레이아웃으로 만든 예제 업무 앱. 셸(GNB + SidePanels)은 `app/layout.tsx`, 예제는 주문 관리(Tiling), 대시보드(Grid), 메일(SidePanels 중첩) |
+| `apps/storybook` | 컴포넌트별 story와 옵션(Controls), 접근성 검사(addon-a11y) |
 | `apps/playground` | e2e 검증용 fixture (SSR, StrictMode, 컨테이너 탈출, 중첩) |
 
 ## 개발
@@ -23,10 +24,11 @@ pnpm test          # 모델 단위 테스트
 pnpm typecheck     # 라이브러리 검사 → 빌드(dist) → playground 검사. playground는 dist의 타입을 쓴다
 pnpm build         # 라이브러리 빌드 + playground next build
 pnpm showcase      # showcase (http://localhost:3200)
+pnpm storybook     # storybook (http://localhost:6006)
 pnpm dev           # playground (http://localhost:3100)
 
 pnpm --filter playground exec playwright install chromium webkit
-pnpm e2e                                          # build 후 playground, showcase e2e
+pnpm e2e                                          # build 후 playground, showcase, storybook e2e
 pnpm build && E2E_MODE=dev pnpm --filter playground e2e   # next dev 대상 (StrictMode)
 ```
 

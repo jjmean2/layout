@@ -1,0 +1,44 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Introduction" />
+
+# @justwonder/layout
+
+업무 화면용 headless React 레이아웃 컴포넌트. 영역의 크기, 위치, 인터랙션(드래그, 키보드, ARIA)만 맡고 화면에 보이는 것은 사용하는 쪽이 그린다.
+
+| 경로 | 용도 |
+|---|---|
+| `@justwonder/layout/side-panels` | 좌/우 사이드 패널과 main. resize, 접기, 접힌 상태의 hover overlay |
+| `@justwonder/layout/tiling` | nvim/tmux식 분할, 숨기기, floating 창 |
+| `@justwonder/layout/grid` | 홈 화면 위젯식 셀 그리드 |
+
+## 공통 규칙
+
+- **Parts.** `X.Root`가 상태를 소유하고 나머지 part는 DOM 요소 하나를 렌더한다. `render={<aside />}`로 요소를 바꾼다.
+- **상태.** `defaultLayout`(uncontrolled) 또는 `layout` + `onLayoutChange`(controlled). 드래그 중에는 내부 draft만 바뀌고 `onLayoutChange`는 놓을 때 한 번 호출된다.
+- **순수 함수.** `toggleCollapsed(layout, 'left')`, `split(layout, …)`, `moveItem(layout, …)`처럼 layout을 받아 새 layout을 돌려준다. Root 밖에서 상태를 바꿀 때 쓴다.
+- **스타일.** 라이브러리는 배치용 inline style만 쓴다. 상태는 `data-state`, `data-placement`, `data-dragging`, `data-resizing` 등으로 노출된다.
+- **크기.** 모든 Root는 부모를 100% 채운다. 부모가 높이를 정해야 한다.
+- **Next.js.** Server Component에서 `<SidePanels.Root>`를 그대로 쓸 수 있다. Tiling pane 내용은 클라이언트에서만 렌더된다.
+
+## 예
+
+```tsx
+'use client'
+import { SidePanels } from '@justwonder/layout/side-panels'
+
+export function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <SidePanels.Root defaultLayout={{ left: { size: 240, collapsed: false } }}>
+      <SidePanels.Panel side="left" render={<nav />}>
+        <Nav />
+        <SidePanels.ResizeHandle className="sash" aria-label="탐색 패널 너비" />
+      </SidePanels.Panel>
+      <SidePanels.HoverTrigger side="left" className="edge-zone" />
+      <SidePanels.Main>{children}</SidePanels.Main>
+    </SidePanels.Root>
+  )
+}
+```
+
+각 레이아웃의 story에서 Controls로 옵션을 바꿔 볼 수 있다. 실제 앱 구성은 `apps/showcase`를 참고한다.

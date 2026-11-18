@@ -3,12 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase build",
-    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase typecheck",
+    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook build",
+    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground --filter showcase --filter storybook typecheck",
     "test": "pnpm --filter @justwonder/layout test",
-    "e2e": "pnpm build && pnpm --filter playground --filter showcase e2e",
+    "e2e": "pnpm build && pnpm --filter playground --filter showcase --filter storybook e2e",
     "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev",
-    "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev"
+    "showcase": "pnpm --filter @justwonder/layout build && pnpm --filter showcase dev",
+    "storybook": "pnpm --filter storybook dev"
   },
   "devEngines": {
     "packageManager": {
