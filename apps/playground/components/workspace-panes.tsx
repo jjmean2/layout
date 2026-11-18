@@ -1,6 +1,6 @@
 'use client'
 
-import { Tiling, usePane, type FloatingOptions, type TilingLayout } from '@layout/react/tiling'
+import { Tiling, usePane, type FloatingOptions, type TilingLayout } from '@justwonder/layout/tiling'
 import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { RenderCounter } from './render-counter'

@@ -19,7 +19,7 @@ export interface DragGestureOptions {
   onCancel?: () => void
 }
 
-const HANDLED = Symbol.for('@layout/react:drag-handled')
+const HANDLED = Symbol.for('@justwonder/layout:drag-handled')
 
 /**
  * handle 요소의 onPointerDown에 연결한다.

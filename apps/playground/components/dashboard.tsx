@@ -1,6 +1,6 @@
 'use client'
 
-import { Grid, type GridLayout } from '@layout/react/grid'
+import { Grid, type GridLayout } from '@justwonder/layout/grid'
 import { useState } from 'react'
 import { RenderCounter } from '@/components/render-counter'
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { SidePanels, type SidePanelsLayout } from '@layout/react/side-panels'
-import { createLayout, pane, splitNode, type TilingLayout } from '@layout/react/tiling'
+import { SidePanels, type SidePanelsLayout } from '@justwonder/layout/side-panels'
+import { createLayout, pane, splitNode, type TilingLayout } from '@justwonder/layout/tiling'
 import { useRef, useState } from 'react'
 import { Dashboard } from '@/components/dashboard'
 import { PaneBody, Workspace } from '@/components/workspace-panes'

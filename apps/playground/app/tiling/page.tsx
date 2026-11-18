@@ -1,7 +1,7 @@
 'use client'
 
-import { SidePanels, toggleCollapsed, type SidePanelsLayout } from '@layout/react/side-panels'
-import { createLayout, pane, show, splitNode, type TilingLayout } from '@layout/react/tiling'
+import { SidePanels, toggleCollapsed, type SidePanelsLayout } from '@justwonder/layout/side-panels'
+import { createLayout, pane, show, splitNode, type TilingLayout } from '@justwonder/layout/tiling'
 import { useRef, useState } from 'react'
 import { Workspace } from '@/components/workspace-panes'
 

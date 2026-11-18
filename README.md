@@ -4,9 +4,9 @@
 
 | 패키지 경로 | 내용 |
 |---|---|
-| `@layout/react/side-panels` | 좌/우 사이드 패널 + main. resize, 접기, 접힌 상태의 hover overlay |
-| `@layout/react/tiling` | nvim/tmux식 분할, 숨기기, floating 창 (`bounds`: 영역 안 / 화면 전체 / 지정 요소) |
-| `@layout/react/grid` | 홈 화면 위젯식 셀 그리드. 이동, 크기 조정, 밀어내기 |
+| `@justwonder/layout/side-panels` | 좌/우 사이드 패널 + main. resize, 접기, 접힌 상태의 hover overlay |
+| `@justwonder/layout/tiling` | nvim/tmux식 분할, 숨기기, floating 창 (`bounds`: 영역 안 / 화면 전체 / 지정 요소) |
+| `@justwonder/layout/grid` | 홈 화면 위젯식 셀 그리드. 이동, 크기 조정, 밀어내기 |
 
 설계와 구현 결과: [docs/design.md](docs/design.md)
 
@@ -28,8 +28,8 @@ pnpm build && E2E_MODE=dev pnpm --filter playground e2e   # next dev 대상 (Str
 
 ```tsx
 'use client'
-import { SidePanels } from '@layout/react/side-panels'
-import { Tiling } from '@layout/react/tiling'
+import { SidePanels } from '@justwonder/layout/side-panels'
+import { Tiling } from '@justwonder/layout/tiling'
 
 <SidePanels.Root ref={workspaceRef} defaultLayout={{ left: { size: 260, collapsed: false } }}>
   <SidePanels.Panel side="left" render={<aside />}>

@@ -1,5 +1,5 @@
 // Server Component. wrapper 없이 라이브러리 part를 점 표기로 쓴다.
-import { SidePanels } from '@layout/react/side-panels'
+import { SidePanels } from '@justwonder/layout/side-panels'
 
 export default function RscPage() {
   return (

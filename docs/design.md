@@ -1,7 +1,7 @@
 # 레이아웃 컴포넌트 설계 및 구현 계획
 
 - 상태: v1 구현 완료 (2026-11-18). 구현 결과와 설계에서 달라진 점은 13장
-- 대상: `packages/layout` (가칭 `@layout/react`), `apps/playground`
+- 대상: `packages/layout` (`@justwonder/layout`), `apps/playground`
 
 ## 1. 목표
 
@@ -53,7 +53,7 @@
 ```
 layout/
 ├─ packages/
-│  └─ layout/                 가칭 @layout/react
+│  └─ layout/                 @justwonder/layout
 │     ├─ src/
 │     │  ├─ internal/         비공개 공용 프리미티브 (3.8)
 │     │  ├─ side-panels/      model.ts · store.ts · parts.tsx · index.ts
@@ -587,7 +587,7 @@ function Dashboard() {
 ## 12. 가정
 
 - React 19 이상, Next.js App Router.
-- 패키지 이름은 미정이다(가칭 `@layout/react`).
+- 패키지 이름은 `@justwonder/layout`이다.
 - 실제 앱은 문서 자체가 스크롤되지 않는 app shell 구조다. viewport 범위의 floating 창은 이 전제에서 동작한다(5.5).
 - 대상 브라우저에 Safari가 포함되면 fallback 경로(iframe 재로드)가 실사용 경로가 된다. pane에 iframe을 쓰는지에 따라 중요도가 달라진다.
 - Grid 기본값은 홈 화면 방식이다(정사각 셀, 자동 메우기 없음).

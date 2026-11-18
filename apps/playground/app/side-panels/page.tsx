@@ -1,6 +1,6 @@
 'use client'
 
-import { SidePanels, toggleCollapsed, type SidePanelsLayout } from '@layout/react/side-panels'
+import { SidePanels, toggleCollapsed, type SidePanelsLayout } from '@justwonder/layout/side-panels'
 import { useState } from 'react'
 import { RenderCounter } from '@/components/render-counter'
 

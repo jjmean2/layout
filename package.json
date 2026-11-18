@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @layout/react build && pnpm --filter playground build",
-    "typecheck": "pnpm --filter @layout/react typecheck && pnpm --filter @layout/react build && pnpm --filter playground typecheck",
-    "test": "pnpm --filter @layout/react test",
+    "build": "pnpm --filter @justwonder/layout build && pnpm --filter playground build",
+    "typecheck": "pnpm --filter @justwonder/layout typecheck && pnpm --filter @justwonder/layout build && pnpm --filter playground typecheck",
+    "test": "pnpm --filter @justwonder/layout test",
     "e2e": "pnpm build && pnpm --filter playground e2e",
-    "dev": "pnpm --filter @layout/react build && pnpm --filter playground dev"
+    "dev": "pnpm --filter @justwonder/layout build && pnpm --filter playground dev"
   },
   "devEngines": {
     "packageManager": {

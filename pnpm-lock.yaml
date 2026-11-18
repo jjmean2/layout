@@ -177,7 +177,7 @@ importers:
 
   apps/playground:
     dependencies:
-      '@layout/react':
+      '@justwonder/layout':
         specifier: workspace:*
         version: link:../../packages/layout
       next:

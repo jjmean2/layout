@@ -1,6 +1,6 @@
 'use client'
 
-import { createLayout, pane, splitNode, type TilingLayout } from '@layout/react/tiling'
+import { createLayout, pane, splitNode, type TilingLayout } from '@justwonder/layout/tiling'
 import { useState } from 'react'
 import { Workspace } from '@/components/workspace-panes'
 
