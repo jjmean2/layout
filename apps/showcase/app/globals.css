@@ -7,6 +7,8 @@
   --muted: #637083;
   --accent: #3563e9;
   --accent-soft: #3563e91f;
+  /* 옅은 배경 위 글자용 (WCAG AA 대비) */
+  --accent-strong: #1f44b0;
   --gnb-bg: #141b26;
   --gnb-text: #e8edf5;
   --shadow: 0 10px 30px #0f172a29;
@@ -23,6 +25,7 @@
     --muted: #93a0b3;
     --accent: #6d8ff5;
     --accent-soft: #6d8ff526;
+    --accent-strong: #a9bdff;
     --gnb-bg: #0a0e14;
     --shadow: 0 12px 32px #0009;
     color-scheme: dark;
@@ -162,7 +165,7 @@ button {
 }
 .nav a[aria-current='page'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-strong);
   font-weight: 600;
 }
 
@@ -410,7 +413,7 @@ table.data tbody tr {
   border-radius: 10px;
   font-size: 11px;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* ---------- grid ---------- */
@@ -446,7 +449,8 @@ table.data tbody tr {
   font-weight: 600;
   color: var(--muted);
 }
-.widget-head [aria-roledescription] {
+.widget-grip {
+  min-height: 24px;
   flex: 1;
   align-self: stretch;
   display: flex;
@@ -505,4 +509,7 @@ table.data tbody tr {
 }
 .reader {
   padding: 24px 28px;
+}
+.mail-list li[aria-selected='true'] small {
+  color: var(--accent-strong);
 }

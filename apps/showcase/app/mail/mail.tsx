@@ -36,7 +36,7 @@ export function Mail() {
         data-testid="mail-list"
         aria-label="받은 메일"
       >
-        <ul className="side-inner mail-list" role="listbox" aria-label="받은 메일">
+        <ul className="side-inner mail-list" role="listbox" aria-label="받은 메일" tabIndex={0}>
           {MAILS.map((m) => (
             <li key={m.id} role="option" aria-selected={m.id === selected} onClick={() => setSelected(m.id)}>
               {m.subject}

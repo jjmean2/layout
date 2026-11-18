@@ -335,6 +335,8 @@ export function Panel(props: PanelProps) {
     {
       ref: ctx.panelRefs[side],
       checkRef: nameCheck,
+      // 기본 div는 이름 붙은 region(landmark)이 된다. render로 <nav>, <aside> 등을 주면 그 요소의 역할을 쓴다.
+      role: render === undefined ? 'region' : undefined,
       id: ctx.panelIds[side],
       tabIndex: -1,
       inert: vstate === 'collapsed' ? true : undefined,

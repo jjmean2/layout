@@ -136,6 +136,11 @@ function usePaneId(part: string): PaneId {
 
 const usesLayer = (bounds: FloatingBounds) => bounds !== 'container'
 
+function withoutNameProps<T extends Record<string, unknown>>(props: T): T {
+  const { 'aria-label': _label, 'aria-labelledby': _labelledby, 'aria-describedby': _describedby, ...rest } = props
+  return rest as T
+}
+
 function optionsEqual(a: Options, b: Options): boolean {
   return (
     a.gap === b.gap &&
@@ -562,7 +567,8 @@ export function MoveHandle(props: MoveHandleProps) {
           children,
         }
       : { children },
-    rest,
+    // tiled 상태의 MoveHandle은 역할 없는 감싸개이므로 이름 속성을 내보내지 않는다 (역할 없는 요소의 이름은 금지)
+    floating ? rest : withoutNameProps(rest),
     { floating },
   )
 }

@@ -37,7 +37,9 @@ for (const entry of entries) {
         .include('#storybook-root')
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
         .analyze()
-      const violations = result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
+      // aria-prohibited-attr(역할 없는 요소의 이름)는 axe가 incomplete로 분류하므로 함께 본다
+      const findings = [...result.violations, ...result.incomplete.filter((r) => r.id === 'aria-prohibited-attr')]
+      const violations = findings.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
       expect(violations, 'axe WCAG 2.2 AA').toEqual([])
     }
   })

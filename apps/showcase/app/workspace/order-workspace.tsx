@@ -85,7 +85,8 @@ export function OrderWorkspace() {
             {({ id }) => (
               <Tiling.Pane className="pane" aria-label={TITLES[id]}>
                 <PaneHead title={TITLES[id] ?? id} />
-                <div className="pane-body">
+                {/* 스크롤 영역은 키보드로도 스크롤할 수 있어야 한다 */}
+                <div className="pane-body" tabIndex={0}>
                   <PaneContent id={id} selected={selected} onSelect={setSelected} />
                 </div>
                 <Tiling.ResizeHandle edge="bottom-right" className="grip" aria-label={`${TITLES[id]} 창 크기`} />

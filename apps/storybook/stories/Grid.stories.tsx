@@ -30,7 +30,6 @@ function Demo(args: Args) {
         gap={args.gap}
         collision={args.collision}
         compact={args.compact}
-        aria-label="위젯"
       >
         {LAYOUT.map((item) => (
           <Grid.Item
