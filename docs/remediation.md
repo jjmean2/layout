@@ -430,15 +430,25 @@ hook이 추가되거나 이름이 바뀐다. `onLayoutChange`에 인자가 추�
 | peer `react >=19` | `^19.0.0` |
 | `dist` 상대 import에 확장자 없음 | `.js` 확장자 (Node ESM) |
 
+### 마무리 검토에서 고친 것
+
+- 리뷰 지적 8(역할 없는 요소의 이름)이 일부 되살아났던 것을 고쳤다. SidePanels.Panel은 기본 div일 때 이름 붙은 `region`이 되고(render로 준 `<nav>`, `<aside>`는 그 역할을 유지), tiled 상태의 `Tiling.MoveHandle`은 이름 속성을 내보내지 않는다. axe는 이 문제를 violation이 아니라 incomplete(`aria-prohibited-attr`)로 분류하므로 검사에 포함했다.
+- `Grid.Root`가 함수형 `style`을 버리고 사용자 style 키를 모두 덮어쓰던 문제를 고쳤다.
+- showcase 모든 라우트에 axe를 추가했고, 드러난 앱 쪽 문제(옅은 배경 위 글자 대비, 키보드로 접근할 수 없는 스크롤 영역, 차트 역할, 24px 미만 손잡이)를 고쳤다.
+- README에서 Playwright 브라우저 설치를 `pnpm test`보다 앞으로 옮겼다(컴포넌트 테스트가 Chromium에서 돈다).
+
 ### 실행한 검증 (마지막 레이어 기준)
 
-- 단위 + 컴포넌트 테스트 57개 (Vitest, Node + Chromium)
+- 단위 + 컴포넌트 테스트 58개 (Vitest, Node + Chromium)
 - lint 0건, Prettier, typecheck(TS 7), build + dist 검사, publint, attw
-- e2e: playground prod(Chromium, WebKit) 69개 통과 1개 skip, playground dev 69개, showcase prod/dev 각 7개, storybook 14개(axe 포함)
+- e2e: playground prod(Chromium, WebKit) 69개 통과 1개 skip, playground dev 69개, showcase prod/dev 각 7개(prod는 axe 포함), storybook 14개(axe 포함)
 
-### 실행하지 않은 것, 구현하지 않은 것
+### 실행하지 않은 것, 구현하지 않은 것, 알려진 동작
 
 - CI는 push하지 않아 GitHub Actions에서 돌려보지 않았다. 같은 명령을 로컬에서 실행했다.
 - Firefox, 스크린 리더 확인.
 - 이동 결과 live region 알림, 조작 안내 문구 (문구를 사용자가 주는 API가 필요하다).
 - LICENSE와 `license` 필드 (종류 미정).
+- controlled 부모가 값을 비동기로 받아들이면(transition, 비동기 검증) 다음 렌더에서 한 번 원래 값으로 돌아갔다가 새 값을 받는다.
+- `render`, `className`, `style` 함수가 받는 part 상태는 타입이 `Record<string, unknown>`이다. part별 상태 타입은 아직 없다.
+- lint에는 타입 정보를 쓰는 규칙이 없다 (TypeScript 7과 typescript-eslint 비호환).
