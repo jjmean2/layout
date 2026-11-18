@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   Fragment,
   useContext,
   useEffect,
@@ -16,7 +17,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { acquireFloatingLayer, releaseFloatingLayer } from '../internal/floating-layer.js'
-import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
@@ -109,7 +110,9 @@ interface TilingContextValue {
   runtime: Store<Runtime>
   hosts: PaneHosts
   rootRef: RefObject<HTMLDivElement | null>
-  panesRef: RefObject<HTMLDivElement | null>
+  /** pane host들이 붙는 컨테이너. callback ref로 채운다 */
+  panesElement: Store<HTMLDivElement | null>
+  setPanesElement: (el: HTMLDivElement | null) => void
   geometry: (root: TileNode | null, gap: number) => TiledGeometry
   domId: (id: PaneId) => string
   getLayer: () => HTMLElement
@@ -173,13 +176,11 @@ export function Root(props: RootProps) {
     floating,
     keepHiddenMounted = true,
     render,
-    ref,
     children,
     ...rest
   } = props
   const controller = useLayoutController<TilingLayout>({ layout, defaultLayout, onLayoutChange }, emptyLayout)
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const panesRef = useRef<HTMLDivElement | null>(null)
   const idBase = useId()
 
   const options: Options = {
@@ -196,13 +197,15 @@ export function Root(props: RootProps) {
     let cache: { root: TileNode | null; gap: number; value: TiledGeometry } | null = null
     let layer: { element: HTMLElement; container: HTMLElement } | null = null
     const optionStore = createStore<Options>(options)
+    const panesElement = createStore<HTMLDivElement | null>(null)
     return {
       layout: controller,
       options: optionStore,
+      panesElement,
+      setPanesElement: (el) => panesElement.set(el),
       runtime: createStore<Runtime>({ focused: null, dragging: null, bounds: null }),
       hosts: new PaneHosts(),
       rootRef,
-      panesRef,
       geometry(root, g) {
         if (!cache || cache.root !== root || cache.gap !== g)
           cache = { root, gap: g, value: computeTiledGeometry(root, g) }
@@ -280,7 +283,7 @@ export function Root(props: RootProps) {
     'div',
     render,
     {
-      ref: mergeRefs(rootRef, ref),
+      ref: rootRef,
       'data-dragging': dataAttr(dragging),
       style: {
         position: 'relative',
@@ -324,53 +327,41 @@ function hostTargets(layout: TilingLayout, bounds: FloatingBounds): string[] {
 
 export function Panes({ children }: PanesProps) {
   const ctx = useTilingContext('Panes')
-  const isClient = useIsClient()
-  const order = useRef<PaneId[]>([])
-
-  const ids = useStoreSelector(ctx.layout, allPaneIds, arrayEqual)
+  const hosts = useStoreSelector(ctx.hosts, (h) => h)
   const hiddenIds = useStoreSelector(ctx.layout, (l) => l.hidden.map((h) => h.id), arrayEqual)
   const keepHiddenMounted = useStoreSelector(ctx.options, (o) => o.keepHiddenMounted)
   const bounds = useStoreSelector(ctx.options, (o) => o.bounds)
   const targets = useStoreSelector(ctx.layout, (l) => hostTargets(l, bounds), arrayEqual)
 
-  // DOM 순서는 pane이 추가된 순서로 고정한다. 순서를 바꾸면 노드가 다시 붙으면서 iframe이 재로드된다.
-  const stable = useMemo(() => {
-    const alive = new Set(ids)
-    const next = order.current.filter((id) => alive.has(id))
-    for (const id of ids) if (!next.includes(id)) next.push(id)
-    order.current = next
-    return next
-  }, [ids])
+  const panesRef = useCallback((el: HTMLDivElement | null) => ctx.setPanesElement(el), [ctx])
 
+  // host 생성과 이동은 여기서만 한다. 새 host가 생기면 snapshot이 바뀌어 다시 렌더된다 (pane 추가 시 렌더 1회 추가).
   useIsoLayoutEffect(() => {
-    const root = ctx.panesRef.current
+    const root = ctx.panesElement.get()
     if (!root) return
-    for (const entry of targets) {
-      const [id, target] = entry.split('\u0000') as [PaneId, string]
-      ctx.hosts.get(id, root)
-      ctx.hosts.place(id, target === 'layer' ? ctx.getLayer() : root)
-    }
-    ctx.hosts.prune(new Set(stable))
-  }, [ctx, targets, stable, isClient])
+    ctx.hosts.reconcile(
+      targets.map((entry) => {
+        const [id, target] = entry.split('\u0000') as [PaneId, string]
+        return [id, target === 'layer' ? ctx.getLayer() : root] as const
+      }),
+    )
+  }, [ctx, targets])
 
   // 언마운트(또는 StrictMode의 effect 재실행) 시 host를 뗀다. 노드는 유지해서 다시 붙인다.
   useEffect(() => () => ctx.hosts.detachAll(), [ctx])
 
-  const hidden = new Set(keepHiddenMounted ? [] : hiddenIds)
+  // 서버와 hydration 첫 렌더에는 host가 없으므로 portal을 렌더하지 않는다.
+  // 순서는 host를 만든 순서로 고정된다. layout이 바뀌어도 portal 순서가 바뀌지 않는다.
+  const hidden = keepHiddenMounted ? null : new Set(hiddenIds)
+  const portals = [...hosts].map(([id, host]) =>
+    hidden?.has(id)
+      ? null
+      : createPortal(<PaneIdContext.Provider value={id}>{children({ id })}</PaneIdContext.Provider>, host, id),
+  )
   return (
     <>
-      <div ref={ctx.panesRef} data-tiling-panes="" style={{ display: 'contents' }} />
-      {isClient
-        ? stable.map((id) =>
-            hidden.has(id)
-              ? null
-              : createPortal(
-                  <PaneIdContext.Provider value={id}>{children({ id })}</PaneIdContext.Provider>,
-                  ctx.hosts.get(id, ctx.panesRef.current),
-                  id,
-                ),
-          )
-        : null}
+      <div ref={panesRef} data-tiling-panes="" style={{ display: 'contents' }} />
+      {portals}
     </>
   )
 }
@@ -403,7 +394,7 @@ function displayedRect(rect: Rect, bounds: BoundsBox | null, options: Options): 
 export type PaneProps = PartProps<{ children?: ReactNode }>
 
 export function Pane(props: PaneProps) {
-  const { render, ref, children, ...rest } = props
+  const { render, children, ...rest } = props
   const ctx = useTilingContext('Pane')
   const id = usePaneId('Pane')
   const view = useStoreSelector(ctx.layout, (l) => paneView(ctx, l, id), shallowEqual)
@@ -454,7 +445,6 @@ export function Pane(props: PaneProps) {
     'div',
     render,
     {
-      ref,
       id: ctx.domId(id),
       tabIndex: -1,
       inert: view.placement === 'hidden' ? true : undefined,
@@ -543,23 +533,24 @@ export function MoveHandle(props: MoveHandleProps) {
     ctx.layout.commit((l) => moveFloating(l, id, next), { reason: 'keyboard', source: id })
   }
 
-  const element = useRender(
+  // floating이 아니면 손잡이 동작 없이 children만 감싼다. 같은 요소를 유지해서 remount가 없다.
+  return useRender(
     'div',
     render,
-    {
-      tabIndex: 0,
-      'aria-label': 'Move window',
-      'aria-roledescription': 'move handle',
-      'data-move-handle': '',
-      onPointerDown,
-      onKeyDown,
-      style: { touchAction: 'none', cursor: 'move' } satisfies CSSProperties,
-      children,
-    },
+    floating
+      ? {
+          tabIndex: 0,
+          'aria-label': 'Move window',
+          'aria-roledescription': 'move handle',
+          'data-move-handle': '',
+          onPointerDown,
+          onKeyDown,
+          style: { touchAction: 'none', cursor: 'move' } satisfies CSSProperties,
+          children,
+        }
+      : { children },
     rest,
   )
-  if (!floating) return useRender('div', render, { children }, rest)
-  return element
 }
 
 const RESIZE_CURSOR: Record<ResizeEdge, string> = {

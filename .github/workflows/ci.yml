@@ -21,10 +21,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      - name: Lint
-        run: pnpm lint
-        # 기존 위반을 고치는 레이어에서 blocking으로 바꾼다 (docs/remediation.md H)
-        continue-on-error: true
+      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm --filter playground exec playwright install --with-deps chromium webkit
       - run: pnpm test

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useLatest } from './use-latest.js'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 
 export interface DragDelta {
@@ -27,110 +28,112 @@ const HANDLED = Symbol.for('@justwonder/layout:drag-handled')
  * - pointer capture로 iframe이나 다른 요소 위에서도 이벤트를 계속 받는다.
  */
 export function useDragGesture(options: DragGestureOptions) {
-  const optionsRef = useRef(options)
-  optionsRef.current = options
+  const optionsRef = useLatest(options)
   const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => () => cleanupRef.current?.(), [])
 
-  return useCallback((reactEvent: ReactPointerEvent<HTMLElement>) => {
-    const native = reactEvent.nativeEvent as PointerEvent & { [HANDLED]?: boolean }
-    if (native[HANDLED]) return
-    if (reactEvent.button !== 0 || !reactEvent.isPrimary) return
-    native[HANDLED] = true
+  return useCallback(
+    (reactEvent: ReactPointerEvent<HTMLElement>) => {
+      const native = reactEvent.nativeEvent as PointerEvent & { [HANDLED]?: boolean }
+      if (native[HANDLED]) return
+      if (reactEvent.button !== 0 || !reactEvent.isPrimary) return
+      native[HANDLED] = true
 
-    const target = reactEvent.currentTarget
-    const startX = reactEvent.clientX
-    const startY = reactEvent.clientY
-    const pointerId = reactEvent.pointerId
-    const threshold = optionsRef.current.threshold ?? 0
-    let started = false
-    let frame = 0
-    let last: PointerEvent | null = null
+      const target = reactEvent.currentTarget
+      const startX = reactEvent.clientX
+      const startY = reactEvent.clientY
+      const pointerId = reactEvent.pointerId
+      const threshold = optionsRef.current.threshold ?? 0
+      let started = false
+      let frame = 0
+      let last: PointerEvent | null = null
 
-    // 텍스트 선택과 브라우저 기본 드래그를 막는다. 포커스는 직접 옮긴다.
-    reactEvent.preventDefault()
-    if (target.tabIndex >= 0) target.focus({ preventScroll: true })
+      // 텍스트 선택과 브라우저 기본 드래그를 막는다. 포커스는 직접 옮긴다.
+      reactEvent.preventDefault()
+      if (target.tabIndex >= 0) target.focus({ preventScroll: true })
 
-    const delta = (event: PointerEvent): DragDelta => ({
-      dx: event.clientX - startX,
-      dy: event.clientY - startY,
-      event,
-    })
-
-    const start = (event: PointerEvent) => {
-      if (optionsRef.current.onStart?.(event) === false) {
-        finish()
-        return false
-      }
-      started = true
-      try {
-        target.setPointerCapture(pointerId)
-      } catch {
-        // 이미 해제된 pointer
-      }
-      return true
-    }
-
-    const onMove = (event: PointerEvent) => {
-      if (event.pointerId !== pointerId) return
-      if (!started) {
-        if (Math.hypot(event.clientX - startX, event.clientY - startY) < threshold) return
-        if (!start(event)) return
-      }
-      last = event
-      if (frame) return
-      frame = requestAnimationFrame(() => {
-        frame = 0
-        if (last) optionsRef.current.onMove(delta(last))
+      const delta = (event: PointerEvent): DragDelta => ({
+        dx: event.clientX - startX,
+        dy: event.clientY - startY,
+        event,
       })
-    }
 
-    const onUp = (event: PointerEvent) => {
-      if (event.pointerId !== pointerId) return
-      const wasStarted = started
-      finish()
-      if (!wasStarted) return
-      // 아직 반영되지 않은 마지막 이동을 먼저 반영한다 (rAF 전에 놓은 경우).
-      optionsRef.current.onMove(delta(event))
-      optionsRef.current.onEnd(delta(event))
-    }
-
-    const onCancel = (event?: Event) => {
-      if (event instanceof PointerEvent && event.pointerId !== pointerId) return
-      const wasStarted = started
-      finish()
-      if (wasStarted) optionsRef.current.onCancel?.()
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !started) return
-      event.preventDefault()
-      event.stopPropagation()
-      onCancel()
-    }
-
-    const finish = () => {
-      if (frame) cancelAnimationFrame(frame)
-      frame = 0
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-      window.removeEventListener('pointercancel', onCancel)
-      window.removeEventListener('keydown', onKeyDown, true)
-      try {
-        if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId)
-      } catch {
-        // 무시
+      const start = (event: PointerEvent) => {
+        if (optionsRef.current.onStart?.(event) === false) {
+          finish()
+          return false
+        }
+        started = true
+        try {
+          target.setPointerCapture(pointerId)
+        } catch {
+          // 이미 해제된 pointer
+        }
+        return true
       }
-      cleanupRef.current = null
-    }
 
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-    window.addEventListener('pointercancel', onCancel)
-    window.addEventListener('keydown', onKeyDown, true)
-    cleanupRef.current = finish
+      const onMove = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) return
+        if (!started) {
+          if (Math.hypot(event.clientX - startX, event.clientY - startY) < threshold) return
+          if (!start(event)) return
+        }
+        last = event
+        if (frame) return
+        frame = requestAnimationFrame(() => {
+          frame = 0
+          if (last) optionsRef.current.onMove(delta(last))
+        })
+      }
 
-    if (threshold === 0) start(native)
-  }, [])
+      const onUp = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) return
+        const wasStarted = started
+        finish()
+        if (!wasStarted) return
+        // 아직 반영되지 않은 마지막 이동을 먼저 반영한다 (rAF 전에 놓은 경우).
+        optionsRef.current.onMove(delta(event))
+        optionsRef.current.onEnd(delta(event))
+      }
+
+      const onCancel = (event?: Event) => {
+        if (event instanceof PointerEvent && event.pointerId !== pointerId) return
+        const wasStarted = started
+        finish()
+        if (wasStarted) optionsRef.current.onCancel?.()
+      }
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape' || !started) return
+        event.preventDefault()
+        event.stopPropagation()
+        onCancel()
+      }
+
+      const finish = () => {
+        if (frame) cancelAnimationFrame(frame)
+        frame = 0
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onCancel)
+        window.removeEventListener('keydown', onKeyDown, true)
+        try {
+          if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId)
+        } catch {
+          // 무시
+        }
+        cleanupRef.current = null
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onCancel)
+      window.addEventListener('keydown', onKeyDown, true)
+      cleanupRef.current = finish
+
+      if (threshold === 0) start(native)
+    },
+    [optionsRef],
+  )
 }

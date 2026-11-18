@@ -16,7 +16,7 @@ import {
   type RefObject,
 } from 'react'
 import { createHoverReveal, type HoverReveal } from '../internal/hover-reveal.js'
-import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
@@ -103,7 +103,7 @@ export type RootProps = PartProps<{
 }>
 
 export function Root(props: RootProps) {
-  const { layout, defaultLayout, onLayoutChange, render, ref, children, ...rest } = props
+  const { layout, defaultLayout, onLayoutChange, render, children, ...rest } = props
   const controller = useLayoutController<SidePanelsLayout>({ layout, defaultLayout, onLayoutChange }, {})
   const rootRef = useRef<HTMLDivElement | null>(null)
   const idBase = useId()
@@ -158,7 +158,7 @@ export function Root(props: RootProps) {
     'div',
     render,
     {
-      ref: mergeRefs(rootRef, ref),
+      ref: rootRef,
       'data-dragging': dataAttr(dragging !== null),
       style: {
         display: 'flex',
@@ -300,7 +300,7 @@ export function Panel(props: PanelProps) {
     'div',
     render,
     {
-      ref: mergeRefs(ctx.panelRefs[side], ref),
+      ref: ctx.panelRefs[side],
       id: ctx.panelIds[side],
       tabIndex: -1,
       inert: vstate === 'collapsed' ? true : undefined,
@@ -444,7 +444,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
 export type HoverTriggerProps = PartProps<{ side: Side }>
 
 export function HoverTrigger(props: HoverTriggerProps) {
-  const { side, render, ref, ...rest } = props
+  const { side, render, ...rest } = props
   const ctx = useRootContext('HoverTrigger')
   const config = useStoreSelector(ctx.configs, (c) => c[side])
   const collapsed = useStoreSelector(ctx.layout, (l) => sideFromLayout(l, side, config).collapsed)
@@ -456,7 +456,7 @@ export function HoverTrigger(props: HoverTriggerProps) {
     'div',
     render,
     {
-      ref: mergeRefs(ctx.triggerRefs[side], ref),
+      ref: ctx.triggerRefs[side],
       role: 'button',
       tabIndex: 0,
       'aria-expanded': open,

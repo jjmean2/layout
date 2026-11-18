@@ -11,7 +11,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { dataAttr, mergeRefs } from '../internal/merge-props.js'
+import { dataAttr } from '../internal/merge-props.js'
 import { createStore, shallowEqual, useStoreSelector, type Store } from '../internal/store.js'
 import type { PartProps } from '../internal/types.js'
 import { useDragGesture } from '../internal/use-drag-gesture.js'
@@ -101,7 +101,6 @@ export function Root(props: RootProps) {
     collision = 'push',
     compact = false,
     render,
-    ref,
     children,
     style: userStyle,
     ...rest
@@ -178,7 +177,7 @@ export function Root(props: RootProps) {
     'div',
     render,
     {
-      ref: mergeRefs(rootRef, ref),
+      ref: rootRef,
       'data-dragging': dataAttr(dragging),
       style,
       children,

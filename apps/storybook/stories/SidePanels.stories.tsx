@@ -85,33 +85,33 @@ export const CollapsedWithHoverOverlay: Story = { args: { leftCollapsed: true } 
 export const HoverOverlayDisabled: Story = { args: { leftCollapsed: true, hoverOverlay: false } }
 
 /** Root 밖(GNB)의 버튼으로 제어하는 controlled 사용. 순수 함수 toggleCollapsed를 쓴다. */
-export const ControlledFromOutside: Story = {
-  render: () => {
-    const [layout, setLayout] = useState<SidePanelsLayout>({
-      left: { size: 240, collapsed: false },
-      right: { size: 240, collapsed: true },
-    })
-    return (
-      <div className="demo-col">
-        <div className="demo-bar">
-          <button onClick={() => setLayout((l) => toggleCollapsed(l, 'left'))}>왼쪽</button>
-          <button onClick={() => setLayout((l) => toggleCollapsed(l, 'right'))}>오른쪽</button>
-          <code style={{ fontSize: 11, opacity: 0.8 }}>{JSON.stringify(layout)}</code>
-        </div>
-        <div className="demo-fill">
-          <SidePanels.Root layout={layout} onLayoutChange={setLayout}>
-            <SidePanels.Panel side="left" className="side">
-              <div className="side-inner">왼쪽</div>
-              <SidePanels.ResizeHandle className="sash" aria-label="왼쪽 패널 너비" />
-            </SidePanels.Panel>
-            <SidePanels.Main className="main">onLayoutChange는 놓을 때 한 번 호출된다.</SidePanels.Main>
-            <SidePanels.Panel side="right" className="side">
-              <div className="side-inner">오른쪽</div>
-              <SidePanels.ResizeHandle className="sash" aria-label="오른쪽 패널 너비" />
-            </SidePanels.Panel>
-          </SidePanels.Root>
-        </div>
+function ControlledFromOutsideDemo() {
+  const [layout, setLayout] = useState<SidePanelsLayout>({
+    left: { size: 240, collapsed: false },
+    right: { size: 240, collapsed: true },
+  })
+  return (
+    <div className="demo-col">
+      <div className="demo-bar">
+        <button onClick={() => setLayout((l) => toggleCollapsed(l, 'left'))}>왼쪽</button>
+        <button onClick={() => setLayout((l) => toggleCollapsed(l, 'right'))}>오른쪽</button>
+        <code style={{ fontSize: 11, opacity: 0.8 }}>{JSON.stringify(layout)}</code>
       </div>
-    )
-  },
+      <div className="demo-fill">
+        <SidePanels.Root layout={layout} onLayoutChange={setLayout}>
+          <SidePanels.Panel side="left" className="side">
+            <div className="side-inner">왼쪽</div>
+            <SidePanels.ResizeHandle className="sash" aria-label="왼쪽 패널 너비" />
+          </SidePanels.Panel>
+          <SidePanels.Main className="main">onLayoutChange는 놓을 때 한 번 호출된다.</SidePanels.Main>
+          <SidePanels.Panel side="right" className="side">
+            <div className="side-inner">오른쪽</div>
+            <SidePanels.ResizeHandle className="sash" aria-label="오른쪽 패널 너비" />
+          </SidePanels.Panel>
+        </SidePanels.Root>
+      </div>
+    </div>
+  )
 }
+
+export const ControlledFromOutside: Story = { render: () => <ControlledFromOutsideDemo /> }
