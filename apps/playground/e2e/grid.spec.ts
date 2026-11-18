@@ -11,6 +11,12 @@ const items = async (page: Page) =>
   }>
 const item = async (page: Page, id: string) => (await items(page)).find((i) => i.id === id)!
 
+/** 아이템은 측정(hydration 후 layout effect) 전까지 숨겨져 있다. 보이면 이벤트 핸들러도 붙어 있다. */
+const gotoGrid = async (page: Page) => {
+  await page.goto('/grid')
+  await expect(page.getByTestId('item-clock')).toBeVisible()
+}
+
 test.describe('Grid', () => {
   test('server HTML contains items but hides them until measured', async ({ request, page }) => {
     const html = await (await request.get('/grid')).text()
@@ -50,21 +56,21 @@ test.describe('Grid', () => {
   })
 
   test('resize snaps to allowed sizes', async ({ page }) => {
-    await page.goto('/grid')
+    await gotoGrid(page)
     const grip = await center(page, '[data-testid=resize-clock]')
     const box = (await page.getByTestId('item-clock').boundingBox())!
     await drag(page, grip, { x: grip.x + box.width * 0.9, y: grip.y }, 10)
-    expect(await item(page, 'clock')).toMatchObject({ w: 4, h: 2 })
+    await expect.poll(() => item(page, 'clock')).toMatchObject({ w: 4, h: 2 })
   })
 
   test('keyboard moves and resizes one step', async ({ page }) => {
-    await page.goto('/grid')
+    await gotoGrid(page)
     await page.getByTestId('move-notes').focus()
     await page.keyboard.press('ArrowDown')
-    expect(await item(page, 'notes')).toMatchObject({ x: 0, y: 3 })
+    await expect.poll(() => item(page, 'notes')).toMatchObject({ x: 0, y: 3 })
     await page.getByTestId('resize-clock').focus()
     await page.keyboard.press('ArrowRight')
-    expect(await item(page, 'clock')).toMatchObject({ w: 4, h: 2 })
+    await expect.poll(() => item(page, 'clock')).toMatchObject({ w: 4, h: 2 })
   })
 
   test('container resize updates cells via CSS only, flags data-resizing, no React renders', async ({ page }) => {
