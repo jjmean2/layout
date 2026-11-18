@@ -19,17 +19,19 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - name: Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
-      - run: pnpm typecheck
       - run: pnpm --filter playground exec playwright install --with-deps chromium webkit
-      - run: pnpm test
-      - run: pnpm build
-      - name: Package checks (publint, attw)
-        run: pnpm --filter @justwonder/layout lint:package
-      - run: pnpm --filter playground --filter showcase --filter storybook e2e
+      - name: typecheck, test, build, package checks (publint, attw)
+        run: pnpm turbo run typecheck test build lint:package
+      - name: e2e (next start, storybook static)
+        run: pnpm e2e
       - name: e2e (next dev, StrictMode + dev-only accessible name checks)
-        run: pnpm --filter playground --filter showcase e2e
-        env:
-          E2E_MODE: dev
+        run: pnpm e2e:dev

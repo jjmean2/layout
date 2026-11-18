@@ -1,0 +1,40 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "stream",
+  "tasks": {
+    "build": {
+      "description": "라이브러리 dist, Next 앱, Storybook 정적 빌드. 의존 패키지를 먼저 빌드한다.",
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.test.{ts,tsx}", "!e2e/**", "!playwright.config.ts"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**", "storybook-static/**"]
+    },
+    "typecheck": {
+      "description": "앱은 라이브러리 dist의 .d.ts를 읽으므로 의존 패키지 빌드가 먼저다.",
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "description": "라이브러리 unit + browser(Vitest). src를 직접 테스트하므로 빌드가 필요 없다."
+    },
+    "lint:package": {
+      "description": "publint, attw는 빌드 산출물을 검사한다.",
+      "dependsOn": ["build"]
+    },
+    "e2e": {
+      "description": "next start / storybook 정적 빌드에 대한 Playwright. 자기 빌드 산출물이 필요하다.",
+      "dependsOn": ["build"],
+      "passThroughEnv": ["CI"],
+      "cache": false
+    },
+    "e2e:dev": {
+      "description": "next dev(StrictMode, 개발 모드 경고 검사)에 대한 Playwright. 라이브러리 빌드만 필요하다.",
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI"],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
